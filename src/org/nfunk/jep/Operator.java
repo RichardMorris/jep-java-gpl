@@ -18,7 +18,7 @@ public class Operator {
 	private String name;
 	/** The symbol for the operator, used for printing. */
 	private String symbol;
-	/** Postfix mathcommand */
+	/** The PostfixMathCommandI for evaluating */
 	private PostfixMathCommandI pfmc;
 	
 	/** private default constructor, prevents calling with no arguments. */
@@ -29,7 +29,7 @@ public class Operator {
 	/** construct a new operator.
 	 * 
 	 * @param name	printable name of operator
-	 * @param pfmc  postfix math command for opperator
+	 * @param pfmc  postfix math command for operator
 	 */
 	public Operator(String name,PostfixMathCommandI pfmc)
 	{
@@ -41,7 +41,7 @@ public class Operator {
 	 * 
 	 * @param name	name of operator, must be unique, used when describing operator
 	 * @param symbol printable name of operator, used for printing equations
-	 * @param pfmc  postfix math command for opperator
+	 * @param pfmc  postfix math command for operator
 	 */
 	public Operator(String name,String symbol,PostfixMathCommandI pfmc)
 	{
@@ -51,7 +51,7 @@ public class Operator {
 	}
 	/** returns the symbol used by this operator. */
 	public final String getSymbol() {return symbol;}
-	/** returns a unique name definig this operator. */
+	/** returns a unique name defining this operator. */
 	public final String getName() {return name;}
 	public final PostfixMathCommandI getPFMC() { return pfmc;}
 	public final void setPFMC(PostfixMathCommandI pfmc) { this.pfmc = pfmc;}

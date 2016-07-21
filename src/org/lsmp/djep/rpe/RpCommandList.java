@@ -3,7 +3,9 @@
  */
 package org.lsmp.djep.rpe;
 
-/** A list of commands */
+/** A list of commands 
+ * @see RpEval
+ * */
 public final class RpCommandList {
 	
 	/** Incremental size for list of commands **/
@@ -12,10 +14,8 @@ public final class RpCommandList {
 	RpCommand commands[] = new RpCommand[STACK_INC];
 	/** Current position in the command Stack. **/
 	private short commandPos;
-	private RpEval rpe;
 	/** Package private constructor */
-	private RpCommandList() {}
-	RpCommandList(RpEval rpe) {this.rpe = rpe;}
+	RpCommandList() {}
 	/** Adds a command to the list */
 	final void addCommand(short command,short aux)
 	{
@@ -25,7 +25,7 @@ public final class RpCommandList {
 			System.arraycopy(commands,0,newCommands,0,commands.length);
 			commands = newCommands;
 		}
-		commands[commandPos]=new RpCommand(rpe,command,aux);
+		commands[commandPos]=new RpCommand(command,aux);
 		++commandPos;
 //		++maxCommands;
 	}
@@ -37,13 +37,17 @@ public final class RpCommandList {
 			System.arraycopy(commands,0,newCommands,0,commands.length);
 			commands = newCommands;
 		}
-		commands[commandPos]=new RpCommand(rpe,command);
+		commands[commandPos]=new RpCommand(command);
 		++commandPos;
 //		++maxCommands;
 	}
 
 	public int getNumCommands() { return commandPos;}
 	public RpCommand getCommand(int i) { return commands[i]; }
+
+	/**
+	 * Basic toString method.
+	 */
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		for(int i=0;i<commandPos;++i) {
@@ -52,4 +56,21 @@ public final class RpCommandList {
 		}
 		return sb.toString();
 	}
+
+	/**
+	 * Enhanced RpCommand to String conversion.
+	 * Used when rpe instance is available, prints the values of the constants, variables and functions.
+	 * 
+	 * @param rpe an RpEval instance to use 
+	 * @return String representation, one command per line
+	 */
+	public String toString(RpEval rpe) {
+		StringBuffer sb = new StringBuffer();
+		for(int i=0;i<commandPos;++i) {
+			sb.append(commands[i].toString(rpe));
+			sb.append("\n");
+		}
+		return sb.toString();
+	}
+
 }

@@ -3,8 +3,10 @@
  */
 package org.lsmp.djep.rpe;
 import org.nfunk.jep.*;
-import org.nfunk.jep.function.*;
+import org.nfunk.jep.function.PostfixMathCommandI;
+
 import java.util.*;
+
 /**
  * A fast evaluation algorithm for equations over Doubles, does not work with vectors or matricies.
  * This is based around reverse polish notation
@@ -49,9 +51,15 @@ import java.util.*;
  * and returns the last object on the stack. 
  * <p>
  * A few cautionary notes:
- * Its very unlikely to be thread safe. It only works over doubles
- * expressions with complex numbers or strings will cause problems.
- * It only works for expressions involving scalers.
+ * <ul>
+ * <li>It only works over doubles
+ * expressions with complex numbers or strings will cause problems.</li>
+ * <li>It only works for expressions involving scalers. {@link org.lsmp.djep.mrpe.MRpEval} for a version which works with vectors and matricies.</li>
+ * <li>It is safe to use individual RpEval instances in separate threads, 
+ * using the same instance in separate threads is like to cause exceptions.
+ * The RpCommandList objects created by compile are immutable and are safe to use across threads.
+ * The <tt>duplicate()</tt> method creates a copy of the RpEval object which can evaluate the same
+ * commandList in separate threads.</li>
  * <p>
  * <b>Implementation notes</b>
  * A lot of things have been done to make it as fast as possible:
@@ -68,7 +76,7 @@ import java.util.*;
 public final class RpEval implements ParserVisitor {
 
 	private OperatorSet opSet;
-	private ScalerStore scalerStore = new ScalerStore();
+	private ScalerStore scalerStore = null;
 	/** Contains the constant values **/
 	double constVals[] = new double[0];
 
@@ -77,9 +85,10 @@ public final class RpEval implements ParserVisitor {
 
 	public RpEval(JEP jep) {
 		this.opSet = jep.getOperatorSet();
+		this.scalerStore = new ScalerStore();
 	}
 
-	private RpEval() {}
+	private RpEval() { /* empty */ }
 	
 	/** Index for each command */
 	public static final short CONST = 0;
@@ -109,15 +118,14 @@ public final class RpEval implements ParserVisitor {
 	public static final short CROSS = 19;
 
 	public static final short ASSIGN = 20;
-	public static final short VLIST = 21;
-	public static final short MLIST = 22;
-	public static final short FUN = 23;
-	public static final short UMINUS = 24;
-	public static final short FUN2 = 25;
-	public static final short FUN3 = 26;
-	public static final short FUN4 = 27;
-	public static final short POWN = 28;
-	public static final short RECIP = 29;
+	public static final short UMINUS = 21;
+	public static final short POWN = 22;
+	public static final short RECIP = 23;
+	public static final short FUN0 = 24;
+	public static final short FUN1 = 25;
+	public static final short FUN2 = 26;
+	public static final short FUN3 = 27;
+	public static final short FUN4 = 28;
 	/** Standard functions **/
 	
 	private static final short SIN = 1;
@@ -148,7 +156,13 @@ public final class RpEval implements ParserVisitor {
 
 	// 3 argument functions
 	private static final short IF = 22;
+	
+	// Custom functions
+	private static final short CUSTOM = 23;
 
+	// Number of custom functions
+	private static short nCustom = 0;
+	
 	/** Hashtable for function name lookup **/
 	
 	private static final Hashtable functionHash = new Hashtable();
@@ -179,9 +193,23 @@ public final class RpEval implements ParserVisitor {
 		functionHash.put("atan2",new Short(ATAN2));
 		functionHash.put("if",new Short(IF));
 	}
-
+	static PostfixMathCommandI[] customFunctionCommands=new PostfixMathCommandI[0];
 	
-
+	static synchronized Short getUserFunction(String name,PostfixMathCommandI pfmc) {
+		Short val = (Short) functionHash.get(name);
+		if(val!=null) return val;
+		
+		val = new Short((short) (CUSTOM + nCustom));
+		functionHash.put(name,val);
+		PostfixMathCommandI[] oldCustom = customFunctionCommands;
+		customFunctionCommands = new PostfixMathCommandI[nCustom+1];
+		for(int k=0;k<oldCustom.length;++k)
+			customFunctionCommands[k] = oldCustom[k];
+		customFunctionCommands[nCustom] = pfmc;
+		++nCustom;
+		//throw new ParseException("RpeEval: Sorry unsupported operator/function: "+ node.getName());
+		return val;
+	}
 	/**
 	 * Base class for storage for each type of data.
 	 * Each subclass should define
@@ -193,7 +221,7 @@ public final class RpEval implements ParserVisitor {
 	 * Data for Variables is stored in vars and references to the Variables
 	 * in varRefs. 
 	 */
-	private abstract static class ObjStore implements Observer {
+	abstract static class ObjStore implements Observer {
 		/** Contains references to Variables of this type */
 		Hashtable varRefs = new Hashtable();
 		/** The stack pointer */
@@ -201,7 +229,10 @@ public final class RpEval implements ParserVisitor {
 		/** Maximum size of stack */
 		int stackMax=0;
 		final void incStack()	{sp++; if(sp > stackMax) stackMax = sp;	}
-		final void decStack()	throws ParseException {--sp; if(sp <0 ) throw new ParseException("RPEval: stack error");}
+		final void decStack()	throws ParseException 	{
+			--sp; 
+			if(sp <0 ) throw new ParseException("RPEval: stack error");
+		}
 		/** call this to reset pointers as first step in evaluation */
 		final void reset() { sp = 0; }
 		/** Add a reference to this variable. 
@@ -267,7 +298,7 @@ public final class RpEval implements ParserVisitor {
 		}
 	}
 
-	private final class ScalerStore extends ObjStore {
+	static final class ScalerStore extends ObjStore {
 		double stack[]=new double[0];
 		double vars[]= new double[0];
 		final void alloc() { 
@@ -440,6 +471,17 @@ public final class RpEval implements ParserVisitor {
 			else
 				stack[sp++] = 0.0;
 		}
+		
+		protected ScalerStore duplicate() {
+			ScalerStore copy = new ScalerStore();
+			copy.sp = this.sp;
+			copy.stackMax = this.stackMax;
+			copy.varRefs = this.varRefs;
+			copy.stack = (double []) this.stack.clone();
+			copy.vars = (double []) this.vars.clone();
+			return copy;
+		}
+
 	}
 	
 	/**
@@ -447,7 +489,7 @@ public final class RpEval implements ParserVisitor {
 	 */
 	public final RpCommandList compile(Node node) throws ParseException
 	{
-		curCommandList = new RpCommandList(this);
+		curCommandList = new RpCommandList();
 		node.jjtAccept(this,null);
 		scalerStore.alloc();
 		return curCommandList;
@@ -500,8 +542,8 @@ public final class RpEval implements ParserVisitor {
 	{
 		int nChild = node.jjtGetNumChildren();
 
-		if(node.isOperator() && node.getOperator() == opSet.getAssign()) {}
-		else if(node.isOperator() && node.getOperator() == opSet.getPower()) {}
+		if(node.isOperator() && node.getOperator() == opSet.getAssign()) { /* empty */ }
+		else if(node.isOperator() && node.getOperator() == opSet.getPower()) { /* empty */ }
 		else
 			node.childrenAccept(this,null);
 
@@ -616,43 +658,32 @@ public final class RpEval implements ParserVisitor {
 						{
 							curCommandList.addCommand(POWN,(short) (-sval));
 							curCommandList.addCommand(RECIP);
+							return null;
 						}
 					}
 				}
 				rhs.jjtAccept(this,null);
 				scalerStore.decStack();
-				curCommandList.addCommand(POW); return null;
+				curCommandList.addCommand(POW); 
+				return null;
 			}
 			throw new ParseException("RpeEval: Sorry unsupported operator/function: "+ node.getName());
 		}
 		// other functions
 		
-		Short val = (Short) functionHash.get(node.getName());
-		if(val == null)
-			throw new ParseException("RpeEval: Sorry unsupported operator/function: "+ node.getName());
-		if(nChild == 1)
-		{
-			//scalerStore.decStack();
-			curCommandList.addCommand(FUN,val.shortValue()); 
-			return null;
-		}
-		else if(nChild == 2)
-		{
-			curCommandList.addCommand(FUN2,val.shortValue()); 
-			return null;
-		}
-		else if(nChild == 3)
-		{
-			curCommandList.addCommand(FUN3,val.shortValue()); 
-			return null;
-		}
-		else if(nChild == 4)
-		{
-			curCommandList.addCommand(FUN4,val.shortValue()); 
-			return null;
-		}
-
-		throw new ParseException("RpeEval: sorry can currently only support single argument functions");
+		Short val = getUserFunction(node.getName(),node.getPFMC());
+		curCommandList.addCommand((short)(FUN0+nChild),val.shortValue()); 
+		if(nChild==0)
+			scalerStore.incStack();
+		else if(nChild==1) { /* empty */ }
+		else if(nChild==2)
+			scalerStore.decStack();
+		else 
+			for(int k=2;k<nChild;++k)
+				scalerStore.decStack();
+			
+		return null;
+		//throw new ParseException("RpeEval: sorry can currently only support single argument functions");
 	}
 
 	/***************************** evaluation *****************************/
@@ -664,7 +695,8 @@ public final class RpEval implements ParserVisitor {
 	public final double evaluate(RpCommandList comList)
 	{
 		scalerStore.reset();
-	
+		try
+		{
 		// Now actually process the commands
 		int num = comList.getNumCommands();
 		for(short commandNum=0;commandNum<num;++commandNum)
@@ -696,23 +728,49 @@ public final class RpEval implements ParserVisitor {
 			case NE: scalerStore.neq(); break;
 			case EQ: scalerStore.eq(); break;
 			case ASSIGN: scalerStore.assign(aux1); break;
-			case FUN: unitaryFunction(aux1); break;
 			case UMINUS: scalerStore.uminus(); break;
+			case POWN: scalerStore.powN(aux1); break;
+			case RECIP: scalerStore.recroprical(); break;
+			case FUN0: nullaryFunction(aux1); break;
+			case FUN1: unitaryFunction(aux1); break;
 			case FUN2: binaryFunction(aux1); break;
 			case FUN3: trianaryFunction(aux1); break;
 			case FUN4: quarteraryFunction(aux1); break;
-			case POWN: scalerStore.powN(aux1); break;
-			case RECIP: scalerStore.recroprical(); break;
+			default:
+				naryFunction(aux1,command.command-FUN0); break;
 			}
 		}
-
+		}
+		catch(ParseException e) {
+			return Double.NaN;
+		}
 		return scalerStore.stack[--scalerStore.sp];
 	}
 
-	
+	private final Stack stack = new Stack();
 	private static final double LOG10 = Math.log(10.0);
 
-	private final void unitaryFunction(short fun)
+	private final void nullaryFunction(short fun) throws ParseException
+	{
+		double r;
+		int index = fun-CUSTOM;
+		PostfixMathCommandI pfmc = customFunctionCommands[index];
+		if(pfmc instanceof RealNullaryFunction) {
+			r = ((RealNullaryFunction) pfmc).evaluate();
+		}
+		else if(pfmc instanceof RealNaryFunction) {
+			double[] vals = new double[0];
+			r = ((RealNaryFunction) pfmc).evaluate(vals);
+		}
+		else
+		{
+			pfmc.setCurNumberOfParameters(0);
+			pfmc.run(stack);
+			r = ((Number) stack.pop()).doubleValue();
+		}
+		scalerStore.stack[scalerStore.sp++] = r;
+	}
+	private final void unitaryFunction(short fun) throws ParseException
 	{
 		double r = scalerStore.stack[--scalerStore.sp];
 		switch(fun) {
@@ -744,30 +802,81 @@ public final class RpEval implements ParserVisitor {
 			case SEC: r = 1.0/Math.cos(r); break;
 			case COSEC:  r = 1.0/Math.sin(r); break;
 			case COT: r = 1.0/Math.tan(r); break;
+			default:
+				int index = fun-CUSTOM;
+				PostfixMathCommandI pfmc = customFunctionCommands[index];
+				if(pfmc instanceof RealUnaryFunction) {
+					r = ((RealUnaryFunction) pfmc).evaluate(r);
+				}
+				else if(pfmc instanceof RealNaryFunction) {
+					double[] vals = new double[]{r};
+					r = ((RealNaryFunction) pfmc).evaluate(vals);
+				}
+				else
+				{
+					pfmc.setCurNumberOfParameters(1);
+					stack.push(new Double(r));
+					pfmc.run(stack);
+					r = ((Number) stack.pop()).doubleValue();
+				}
 		}
 		scalerStore.stack[scalerStore.sp++] = r;
 	}
 	
-	private final void binaryFunction(short fun){
+	private final void binaryFunction(short fun) throws ParseException{
 		double r = scalerStore.stack[--scalerStore.sp];
 		double l = scalerStore.stack[--scalerStore.sp];
 		switch(fun) {
 		case ATAN2: r = Math.atan2(l,r); break;
+		default:
+			int index = fun-CUSTOM;
+			PostfixMathCommandI pfmc = customFunctionCommands[index];
+			if(pfmc instanceof RealBinaryFunction) {
+				r = ((RealBinaryFunction) pfmc).evaluate(l,r);
+			}
+			else if(pfmc instanceof RealNaryFunction) {
+				double[] vals = new double[]{l,r};
+				r = ((RealNaryFunction) pfmc).evaluate(vals);
+			}
+			else
+			{
+				pfmc.setCurNumberOfParameters(2);
+				stack.push(new Double(l));
+				stack.push(new Double(r));
+				pfmc.run(stack);
+				r = ((Number) stack.pop()).doubleValue();
+			}
 		}
 		scalerStore.stack[scalerStore.sp++] = r;
 	}
-	private final void trianaryFunction(short fun)
+	private final void trianaryFunction(short fun) throws ParseException
 	{
 		double a = scalerStore.stack[--scalerStore.sp];
 		double r = scalerStore.stack[--scalerStore.sp];
 		double l = scalerStore.stack[--scalerStore.sp];
 		switch(fun) {
 		case IF: r = (l>0.0?r:a); break;
+		default:
+			int index = fun-CUSTOM;
+			PostfixMathCommandI pfmc = customFunctionCommands[index];
+			if(pfmc instanceof RealNaryFunction) {
+				double[] args=new double[]{l,r,a};
+				r = ((RealNaryFunction) pfmc).evaluate(args);
+			}
+			else
+			{
+				pfmc.setCurNumberOfParameters(3);
+				stack.push(new Double(l));
+				stack.push(new Double(r));
+				stack.push(new Double(a));
+				pfmc.run(stack);
+				r = ((Number) stack.pop()).doubleValue();
+			}
 		}
 		scalerStore.stack[scalerStore.sp++] = r;
 		
 	}
-	private final void quarteraryFunction(short fun)
+	private final void quarteraryFunction(short fun) throws ParseException
 	{
 		double b = scalerStore.stack[--scalerStore.sp];
 		double a = scalerStore.stack[--scalerStore.sp];
@@ -775,8 +884,47 @@ public final class RpEval implements ParserVisitor {
 		double l = scalerStore.stack[--scalerStore.sp];
 		switch(fun) {
 		case IF: r = (l>0.0?r: (l<0.0?a:b)); break;
+		default:
+			int index = fun-CUSTOM;
+			PostfixMathCommandI pfmc = customFunctionCommands[index];
+			if(pfmc instanceof RealNaryFunction) {
+				double[] args=new double[]{l,r,a,b};
+				r = ((RealNaryFunction) pfmc).evaluate(args);
+			}
+			else
+			{
+				pfmc.setCurNumberOfParameters(4);
+				stack.push(new Double(l));
+				stack.push(new Double(r));
+				stack.push(new Double(a));
+				stack.push(new Double(b));
+				pfmc.run(stack);
+				r = ((Number) stack.pop()).doubleValue();
+			}
 		}
 		scalerStore.stack[scalerStore.sp++] = r;
+		
+	}
+	private final void naryFunction(short fun,int nargs) throws ParseException
+	{
+		int index = fun-CUSTOM;
+		PostfixMathCommandI pfmc = customFunctionCommands[index];
+		if(pfmc instanceof RealNaryFunction) {
+			double[] args=new double[nargs];
+			for(int k=nargs-1;k>=0;--k)
+				args[k] = scalerStore.stack[--scalerStore.sp];
+			double r = ((RealNaryFunction) pfmc).evaluate(args);
+			scalerStore.stack[scalerStore.sp++] = r;
+		}
+		else {
+			pfmc.setCurNumberOfParameters(nargs);
+			scalerStore.sp -= nargs;
+			for(int k=0;k<nargs;++k)
+				stack.push(new Double(scalerStore.stack[scalerStore.sp+k]));
+			pfmc.run(stack);
+			double r = ((Number) stack.pop()).doubleValue();
+			scalerStore.stack[scalerStore.sp++] = r;
+		}
 		
 	}
 
@@ -818,7 +966,23 @@ public final class RpEval implements ParserVisitor {
 	{
 		scalerStore.vars[ref]=val;
 	}
-	public String getFunction(short ref)
+	
+	/**
+	 * Returns the constant value with a given reference number
+	 * @param ref
+	 * @return the value of the constant
+	 */
+	public double getConstantValue(int ref)
+	{
+		return constVals[ref];
+	}
+
+	/**
+	 * Returns the name of the function with a given reference number.
+	 * @param ref
+	 * @return the name of the function
+	 */
+	public String getFunction(int ref)
 	{
 			switch(ref) {
 			case SIN: return "sin";
@@ -843,7 +1007,117 @@ public final class RpEval implements ParserVisitor {
 			case COT: return "cot";
 			case ATAN2: return "atan2";
 			case IF: return "if";
+			default:
+				Enumeration en=functionHash.keys();
+				while(en.hasMoreElements()) {
+					String s = (String) en.nextElement();
+					Short val = (Short) functionHash.get(s);
+					if(val.intValue() == ref)
+						return s;
+				}
 			}
 			return null;
 	}
+
+	/**
+	 * Returns a copy of the RpEval object which is safe to use for evaluation in a new thread.
+	 * <code>
+	 * RpEval rpe1 = new RpEval(jep);
+	 * RpCommandList com = rpe1.compile(node);
+	 * int varRef = rpe1.getVarRef(jep.getVar("x"));
+	 * RpEval rpe2 = rpe1.duplicate();
+	 * rpe2.setVarValue(ref,0.5);
+	 * double result = rpe2.evaluate(com);
+	 * </code>
+	 * @return a new instance
+	 */
+	public RpEval duplicate() {
+		
+		RpEval copy=null;
+		copy = new RpEval();
+		copy.opSet = this.opSet;
+		copy.constVals = this.constVals;
+		copy.scalerStore = this.scalerStore.duplicate();
+		return copy;
+	}
+	
+	/** Basic conversion of a command to string representation.
+	 * Used when the rpe instance is not available.
+	 * @param com an RpCommand to convert
+	 * @return string representation
+	 */
+	static String staticToString(RpCommand com) {
+		switch(com.command)
+		{
+			case RpEval.CONST: return "Constant\tnum "+com.aux1;
+			case RpEval.VAR: return "Variable\tnum "+com.aux1;
+			case RpEval.ADD: return "ADD";
+			case RpEval.SUB: return "SUB";
+			case RpEval.MUL: return "MUL";
+			case RpEval.DIV: return "DIV";
+			case RpEval.MOD: return "MOD";
+			case RpEval.POW: return "POW";
+			case RpEval.AND: return "AND";
+			case RpEval.OR: return "OR";
+			case RpEval.NOT: return "NOT";
+			case RpEval.LT: return "LT";
+			case RpEval.LE: return "LE";
+			case RpEval.GT: return "GT";
+			case RpEval.GE: return "GE";
+			case RpEval.EQ: return "EQ";
+			case RpEval.NE: return "NE";
+			case RpEval.ASSIGN: return "Assign\t\tnum "+com.aux1;
+			case RpEval.UMINUS: return "Unitary minus";
+			case RpEval.POWN: return "POWN\t\t"+com.aux1;
+			case RpEval.RECIP: return "1/x";
+			case RpEval.FUN0: return "Nullary Function\tnum "+com.aux1;
+			case RpEval.FUN1: return "Function\tnum "+com.aux1;
+			case RpEval.FUN2: return "Binary function\tnum "+com.aux1;
+			case RpEval.FUN3: return "Trianary function\tnum "+com.aux1;
+			case RpEval.FUN4: return "Nary function\tnum "+com.aux1;
+			default: return "Nary function\tnum "+com.aux1;
+		}
+		//return "WARNING unknown command: "+com.command+" "+com.aux1;
+	}
+
+	/**
+	 * Enhanced RpCommand to String conversion.
+	 * Used when rpe instance is available, prints the values of the constants, variables and functions.
+	 * @param com an RpCommand to convert
+	 * @return string representation
+	 */
+	String toString(RpCommand com) {
+		switch(com.command)
+		{
+			case RpEval.CONST: return "Constant\tnum "+com.aux1+"\tval "+getConstantValue(com.getRef());
+			case RpEval.VAR: return "Variable\tnum "+com.aux1+"\t"+getVariable(com.aux1).getName();
+			case RpEval.ADD: return "ADD";
+			case RpEval.SUB: return "SUB";
+			case RpEval.MUL: return "MUL";
+			case RpEval.DIV: return "DIV";
+			case RpEval.MOD: return "MOD";
+			case RpEval.POW: return "POW";
+			case RpEval.AND: return "AND";
+			case RpEval.OR: return "OR";
+			case RpEval.NOT: return "NOT";
+			case RpEval.LT: return "LT";
+			case RpEval.LE: return "LE";
+			case RpEval.GT: return "GT";
+			case RpEval.GE: return "GE";
+			case RpEval.EQ: return "EQ";
+			case RpEval.NE: return "NE";
+			case RpEval.ASSIGN: return "Assign\t\tnum "+com.aux1+"\t"+getVariable(com.aux1).getName();
+			case RpEval.UMINUS: return "Unitary minus";
+			case RpEval.POWN: return "POWN\t\t"+com.aux1;
+			case RpEval.RECIP: return "1/x";
+			case RpEval.FUN0: return "Nullary Function\tnum "+com.aux1+"\t"+getFunction(com.getRef());
+			case RpEval.FUN1: return "Function\tnum "+com.aux1+"\t"+getFunction(com.getRef());
+			case RpEval.FUN2: return "Binary function\tnum "+com.aux1+"\t"+getFunction(com.getRef());
+			case RpEval.FUN3: return "Trianary function\tnum "+com.aux1+"\t"+getFunction(com.getRef());
+			case RpEval.FUN4: return "Nary function\tnum "+com.aux1+"\t"+getFunction(com.getRef());
+			default: return "Nary function\tnum "+com.aux1+"\t"+getFunction(com.getRef());
+		}
+		//return "WARNING unknown command: "+com.command+" "+com.aux1;
+	}
+	
 }

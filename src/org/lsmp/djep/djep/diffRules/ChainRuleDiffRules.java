@@ -3,10 +3,11 @@
  */
 package org.lsmp.djep.djep.diffRules;
 
+import java.util.regex.Pattern;
+
 import org.lsmp.djep.djep.DJep;
 import org.lsmp.djep.djep.DiffRulesI;
 import org.lsmp.djep.xjep.*;
-import org.nfunk.jep.ASTFunNode;
 import org.nfunk.jep.*;
 import org.nfunk.jep.function.PostfixMathCommandI;
 
@@ -23,11 +24,12 @@ public abstract class ChainRuleDiffRules implements DiffRulesI
 	protected String name;
 	protected PostfixMathCommandI pfmc;
 	protected Node rules[]=null;
+	protected String descriptions[]=null;
 //	protected DifferentationVisitor dv;
 //	protected OperatorSet opSet;
 //	protected NodeFactory nf;
 	/** Cannot construct outside the context of a differentation visitor. */
-	public ChainRuleDiffRules() {}
+	public ChainRuleDiffRules() { /* empty */ }
 	
 	/** returns the name of the function */
 	public String getName() { return name; }
@@ -46,7 +48,7 @@ public abstract class ChainRuleDiffRules implements DiffRulesI
 	{
 		XOperatorSet opSet= (XOperatorSet) djep.getOperatorSet();
 		NodeFactory nf=djep.getNodeFactory();
-		FunctionTable funTab = djep.getFunctionTable();
+		//FunctionTable funTab = djep.getFunctionTable();
 		
 		int nRules = rules.length;
 		if(nRules != children.length)
@@ -57,9 +59,16 @@ public abstract class ChainRuleDiffRules implements DiffRulesI
 			// df(g(x))/dx -> f'(g(x)) * g'(x)
 			Node fprime = djep.deepCopy(rules[0]);
 			Node g = children[0];
+			if(g instanceof ASTVarNode && ((ASTVarNode) g).getName().equals(var)) {
+				Node fprimesub = djep.substitute(fprime,"x",g);
+				//Node gprime = dchildren[0];
+				return fprimesub;
+			}
+			else {
 			Node fprimesub = djep.substitute(fprime,"x",g);
 			Node gprime = dchildren[0];
 			return nf.buildOperatorNode(opSet.getMultiply(),fprimesub,gprime);
+			}
 		}
 		else if(nRules == 2)
 		{
@@ -98,23 +107,40 @@ public abstract class ChainRuleDiffRules implements DiffRulesI
 				df_dg[i] = djep.substitute(df_dg[i],names,children);
 				products[i] = nf.buildOperatorNode(opSet.getMultiply(),df_dg[i],dchildren[i]); 
 			}
-			return nf.buildFunctionNode("sum",funTab.get("sum"),products);
+			return nf.buildOperatorNode(opSet.getAdd(),products);
 		}
 	}
 
+	protected String getParam(int i) {
+	    if(getNumRules()==1) return "f";
+	    if(getNumRules()==2) { return (i==0?"f":"g"); }
+	    return "f"+(i+1);
+	}
+	
+	protected String getParams() {
+	    String s = "";
+	    for(int i=0;i<getNumRules();++i)
+		s = s+ (i>0?",":"") + getParam(i);
+	    return s;
+	}
 	public String toString()
 	{
+	    Pattern p1 = Pattern.compile("\\bx\\b");
+	    Pattern p2 = Pattern.compile("\\by\\b");
 		StringBuffer sb = new StringBuffer();
-		sb.append(name + "  \t");
+		//sb.append(name + "  \t");
 		if(rules==null)
 			sb.append("no diff rules possible parse error?");
-		else
+		else {
+			sb.append("diff("+name+"("+getParams()+"),x) -> ");
 			for(int i=0;i<getNumRules();++i)
 			{
-				sb.append("\t");
-				//sb.append(dv.djep.toString(getRule(i)));
-				//TODO print the rule.
+			    String s = p1.matcher(descriptions[i]).replaceAll("f");
+			    s = p2.matcher(s).replaceAll("g");
+				if(i>0) sb.append("+");
+				sb.append(s + " * diff(" + getParam(i) +",x)");
 			}
+		}
 		return sb.toString();
 	}
 	/**

@@ -102,7 +102,7 @@ public class NodeFactory {
 
 	public ASTVarNode buildVariableNode(String name,Object value) throws ParseException
 	{
-	    return buildVariableNode(xj.getSymbolTable().addVariable(name,value));
+	    return buildVariableNode(xj.getSymbolTable().makeVarIfNeeded(name,value));
 	}
 	/**
 	 * Builds a operator node with n arguments

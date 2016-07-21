@@ -28,7 +28,13 @@ public class Scaler extends Number implements MatrixValueI {
 	}
 	public Dimensions getDim() {return Dimensions.ONE; }
 	public int getNumEles() { return 1;	}
-	public void setEle(int i, Object value) {if(value!=null) this.value = value;}
+	public void setEle(int i, Object value) {
+		if(value==null) {}
+		else if(value instanceof Scaler)
+			this.value = ((Scaler) value).value;
+		else
+			this.value = value;
+	}
 	public Object getEle(int i) {return value; }
 //	public void setValue(Object value) { this.value = value;}
 //	public Object getValue() {return value; }
@@ -36,7 +42,7 @@ public class Scaler extends Number implements MatrixValueI {
 	/** sets the elements to those of the arguments. */
 	public void setEles(MatrixValueI val)
 	{
-		if(!(val.getDim().equals(Dimensions.ONE))) return;
+		if(!(val.getDim().equalsDim(Dimensions.ONE))) return;
 		value = val.getEle(0);
 	}
 	
@@ -68,7 +74,7 @@ public class Scaler extends Number implements MatrixValueI {
 	public boolean equals(Object obj) {
 		if(!(obj instanceof Scaler)) return false;
 		Scaler s = (Scaler) obj;
-		if(!s.getDim().equals(getDim())) return false;
+		if(!s.getDim().equalsDim(getDim())) return false;
 		if(!value.equals(s.value)) return false;
 		return true;
 	}

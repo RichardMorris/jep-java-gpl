@@ -6,6 +6,9 @@
 package org.lsmp.djepJUnit;
 
 import org.lsmp.djep.matrixJep.MatrixJep;
+import org.lsmp.djep.matrixJep.MatrixMacroFunction;
+import org.lsmp.djep.xjep.MacroFunction;
+import org.lsmp.djep.xjep.XJep;
 import org.nfunk.jep.Node;
 import org.nfunk.jep.ParseException;
 
@@ -178,6 +181,23 @@ public class MatrixJepTest extends DJepTest {
 		Node pre = mj.preprocess(n);
 		Node simp = mj.simplify(pre);
 	}
+
+//	@Override
+	public void testMacroFun() throws Exception
+	{
+		j.addFunction("zap",new MatrixMacroFunction("zap",1,"x*(x-1)/2",(XJep) j));
+		valueTest("zap(10)","45.0");
+		j.addFunction("zap2",new MatrixMacroFunction("zap",4,"x1+x2+x3+x4",(XJep) j));
+		valueTest("zap2(5,5,3,6)","19.0");
+	}
+	
+	public void testAverage() throws Exception {
+		valueTest("v=[1,2,3]","[1.0,2.0,3.0]");
+		valueTest("s=vsum(v)","6.0");
+		valueTest("l=len(v)","3");
+		valueTest("a=s/l","2.0");
+	}
+
 /* TODO GenMat Not jet implemented for MatrixJep (can it be done?)
 	public void testGenMatEle() throws Exception
 	{

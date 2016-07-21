@@ -12,17 +12,17 @@ import org.nfunk.jep.*;
  * Operators have a number of properties:
  * <ul>
  * <li>A symbol or name of the operator "+".
- * <li>The number of arguments NO_ARGS 0, UNARY 1 (eg UMINUS -x), 
- * BINARY 2 (eq x+y), and NARY either 3 ( a>b ? a : b) or
+ * <li>The number of arguments NO_ARGS 0, UNARY 1 (e.g. UMINUS -x), 
+ * BINARY 2 (e.g. x+y), and NARY either 3 ( a>b ? a : b) or
  * unspecified like a list [x,y,z,w].
- * <li>The binging of the operator, LEFT 1+2+3 -> (1+2)+3 or RIGHT 1=2=3 -> 1=(2=3).
+ * <li>The binding of the operator, LEFT 1+2+3 -> (1+2)+3 or RIGHT 1=2=3 -> 1=(2=3).
  * <li>Whether the operator is ASSOCIATIVE or COMMUTATIVE.
  * <li>The precedence of the operators + has a higher precedence than *.
- * <li>For unary opperators they can either be PREFIX like -x or SUFIX like x%.
+ * <li>For unary operators they can either be PREFIX like -x or SUFIX like x%.
  * <li>Comparative operators can be REFLEXIVE, SYMMETRIC, TRANSITIVE or EQUIVILENCE which has all three properties.
  * <li>A reference to a PostfixtMathCommandI object which is used to evaluate an equation containing the operator.
  * </ul>
- * various is... and get... methods are provided to query the properties of the opperator.
+ * various is... and get... methods are provided to query the properties of the operator.
  * 
  * @author Rich Morris
  * Created on 19-Oct-2003
@@ -44,18 +44,20 @@ public class XOperator extends Operator {
 	public static final int ASSOCIATIVE=16;
 	/** Commutative operators x*y = y*x. */
 	public static final int COMMUTATIVE=32;
-	/** Reflecive relations x=x for all x. */
+	/** Reflective relations x=x for all x. */
 	public static final int REFLEXIVE=64;
 	/** Symmetric relation x=y implies y=x. */
 	public static final int SYMMETRIC=128;
-	/** Transative relations x=y and y=z implies x=z */
+	/** Transitive relations x=y and y=z implies x=z */
 	public static final int TRANSITIVE=256;
-	/** Equivilence relations = reflexive, transative and symetric. */
+	/** Equivalence  relations = reflexive, transitive and symmetric. */
 	public static final int EQUIVILENCE=TRANSITIVE+REFLEXIVE+SYMMETRIC;
+
 	/** prefix operators -x **/
 	public static final int PREFIX=512;
-	/** postfix operators  x%, if neiter prefix and postif then infix, if both trifix like x?y:z **/
-	public static final int SUFIX=1024;
+	/** postfix operators  x% **/
+	public static final int SUFFIX=1024;
+
 	/** self inverse operators like -(-x) !(!x) **/
 	public static final int SELF_INVERSE=2048;
 	/** composite operators, like a-b which is a+(-b) **/
@@ -65,14 +67,20 @@ public class XOperator extends Operator {
 	 *  But a/b/c could be ambiguous so (a/b)/c is printed with brackets.
 	 */	
 	public static final int USE_BINDING_FOR_PRINT=8192;
+	/** Non standard operators, like array access.
+	 * These will typically require the PrintRulesI interface to print
+	 * and require special parsing options.
+	 */
+	public static final int NOT_IN_PARSER=16384;
+	public static final int TERNARY=32768;
 	/** flags for type of operator */
-	private int flags;
+	public int flags;
 
 	/** construct a new operator.
 	 * 
 	 * @param name	printable name of operator
-	 * @param pfmc  postfix math command for opperator
-	 * @param flags set of flags defining the porperties of the operator.
+	 * @param pfmc  postfix math command for operator
+	 * @param flags set of flags defining the properties of the operator.
 	 */
 	public XOperator(String name,PostfixMathCommandI pfmc,int flags)
 	{
@@ -95,8 +103,8 @@ public class XOperator extends Operator {
 	 * 
 	 * @param name	name of operator, must be unique, used when describing operator
 	 * @param symbol printable name of operator, used for printing equations
-	 * @param pfmc  postfix math command for opperator
-	 * @param flags set of flags defining the porperties of the operator.
+	 * @param pfmc  postfix math command for operator
+	 * @param flags set of flags defining the properties of the operator.
 	 */
 	public XOperator(String name,String symbol,PostfixMathCommandI pfmc,int flags)
 	{
@@ -126,7 +134,7 @@ public class XOperator extends Operator {
 	{
 		this(op.getName(),op.getSymbol(),op.getPFMC(),flags);
 	}
-	/** Creates a new XOperators with same flags and precedance as argument. */
+	/** Creates a new XOperators with same flags and precedence as argument. */
 //	public XOperator(XOperator op,PostfixMathCommandI pfmc)
 //	{
 //		this(op.getName(),op.getSymbol(),op.getPFMC(),op.flags,op.precedence);
@@ -134,10 +142,19 @@ public class XOperator extends Operator {
 
 	/** precedence of operator, 0 is most tightly bound, so prec("*") < prec("+"). */
 	private int precedence = -1;
+	/** Get the precedence of the operator. Note this is ordered differently to normal
+	 * precedence in Java, hence precedence("*") < precedence("+"). For tradition ordered precedence use {@link #getPrec()}
+	 * @return the precedence
+	 * @deprecated
+	 */
 	public final int getPrecedence() {return precedence;}
+	/** Get the precedence of the operator. Uses the same convention as Java.
+	 * @return the precedence
+	 */
+	public final int getPrec() {return -precedence;}
 	protected final void setPrecedence(int i) {precedence = i;}
 
-	/** Operators this is distributative over **/
+	/** Operators this is distributive over **/
 	private Operator distribOver[] = new Operator[0];
 
 	protected final void setDistributiveOver(Operator op)
@@ -170,9 +187,15 @@ public class XOperator extends Operator {
 	/** 
 	 * When parsing how is x+y+z interpreted.
 	 * Can be Operator.LEFT x+y+z -> (x+y)+z or
-	 * Operator.RIGHT x=y=z -> x=(y=z). 
+	 * Operator.RIGHT x=y=z -> x=(y=z).
+	 * This is now deprecated 
+	 * @see #isLeftBinding()
+	 * @see #isRightBinding() 
 	 */  
+	//@Deprecated
 	public final int getBinding() { return (flags & (LEFT | RIGHT)); }
+	public final boolean isLeftBinding() { return ((flags & LEFT) == LEFT); }
+	public final boolean isRightBinding() { return ((flags & RIGHT) == RIGHT); }
 	public final boolean isAssociative() {return ((flags & ASSOCIATIVE) == ASSOCIATIVE);}
 	public final boolean isCommutative() { return ((flags & COMMUTATIVE) == COMMUTATIVE);}
 	public final boolean isBinary() {	return ((flags & 3) == BINARY);	}
@@ -184,10 +207,12 @@ public class XOperator extends Operator {
 	public final boolean isReflexive() {	return ((flags & REFLEXIVE) == REFLEXIVE);	}
 	public final boolean isEquivilence() {return ((flags & EQUIVILENCE) == EQUIVILENCE);	}
 	public final boolean isPrefix() {return ((flags & PREFIX) == PREFIX);	}
-	public final boolean isSufix() {return ((flags & SUFIX) == SUFIX);	}
+	public final boolean isSuffix() {return ((flags & SUFFIX) == SUFFIX);	}
+	public final boolean isTernary() {return ((flags & TERNARY) == TERNARY);	}
 	public final boolean isComposite() {return ((flags & COMPOSITE) == COMPOSITE);	}
 	public final boolean isSelfInverse() {return ((flags & SELF_INVERSE) == SELF_INVERSE);	}
 	public final boolean useBindingForPrint() {return ((flags & USE_BINDING_FOR_PRINT) == USE_BINDING_FOR_PRINT);	}
+	public final boolean notInParser() {return ((flags & NOT_IN_PARSER) == NOT_IN_PARSER);	}
 
 	/** returns a verbose representation of the operator and all its properties. **/
 	
@@ -202,9 +227,9 @@ public class XOperator extends Operator {
 		case 2: sb.append(" binary,"); break;
 		case 3: sb.append(" variable number of arguments,"); break;
 		}
-		if(isPrefix() && isSufix()) sb.append(" trifix,");
+		if(isTernary()) sb.append(" ternary,");
 		else if(isPrefix()) sb.append(" prefix,");
-		else if(isSufix()) sb.append(" sufix,");
+		else if(isSuffix()) sb.append(" suffix,");
 		else sb.append(" infix,");
 		if(getBinding()==LEFT) sb.append(" left binding,");
 		else if(getBinding()==RIGHT) sb.append(" right binding,");
@@ -212,7 +237,7 @@ public class XOperator extends Operator {
 		if(isCommutative()) sb.append(" commutative,");
 		sb.append(" precedence "+getPrecedence()+",");
 		if(isEquivilence())
-			sb.append(" equivilence relation,");
+			sb.append(" equivalence relation,");
 		else
 		{
 			if(isReflexive()) sb.append(" reflexive,");

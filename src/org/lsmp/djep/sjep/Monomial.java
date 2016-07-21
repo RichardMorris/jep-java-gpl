@@ -97,7 +97,7 @@ public class Monomial extends AbstractPNode {
 	{
 		MutiableMonomial mm = this.toMutiableMonomial();
 		mm.div(m.coeff);
-		for(int i=0;i<vars.length;++i)
+		for(int i=0;i<m.vars.length;++i)
 			mm.mul(m.vars[i],m.powers[i].negate());
 		return mm.toPNode();
 	}
@@ -176,10 +176,10 @@ public class Monomial extends AbstractPNode {
 	}
 	//////////////////// Comparison functions
 	
-	public boolean equals(PNodeI node)
+	public boolean equalsPNode(PNodeI node)
 	{
 		if(!(node instanceof Monomial)) return false;
-		if(!coeff.equals(((Monomial) node).coeff)) return false;
+		if(!coeff.equalsPNode(((Monomial) node).coeff)) return false;
 		return equalsIgnoreConstant((Monomial) node);
 	}
 	
@@ -188,8 +188,8 @@ public class Monomial extends AbstractPNode {
 		if(vars.length != mon.vars.length) return false;
 		for(int i=0;i<vars.length;++i)
 		{
-			if(!vars[i].equals(mon.vars[i])) return false;
-			if(!powers[i].equals(mon.powers[i])) return false;
+			if(!vars[i].equalsPNode(mon.vars[i])) return false;
+			if(!powers[i].equalsPNode(mon.powers[i])) return false;
 		}
 		return true;
 	}
@@ -200,7 +200,7 @@ public class Monomial extends AbstractPNode {
 			return equalsIgnoreConstant((Monomial) node);
 			
 		if(vars.length != 1) return false;
-		if(!vars[0].equals(node)) return false;
+		if(!vars[0].equalsPNode(node)) return false;
 		if(!powers[0].isOne()) return false;
 		return true;
 	}

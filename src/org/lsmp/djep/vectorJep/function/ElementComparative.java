@@ -19,10 +19,11 @@ import org.nfunk.jep.function.*;
 public class ElementComparative extends Comparative implements BinaryOperatorI {
 
 	public ElementComparative(int index) {super(index);}
-	public Dimensions calcDim(Dimensions ldim,Dimensions rdim)
+
+	public Dimensions calcDim(Dimensions ldim,Dimensions rdim) throws ParseException
 	{
-		if(ldim.equals(rdim)) return ldim;
-		return null;
+		if(ldim.equalsDim(rdim)) return ldim;
+		throw new ParseException("Dimensions do not match "+ldim+" "+rdim);
 	}
 
 	/**
@@ -55,7 +56,7 @@ public class ElementComparative extends Comparative implements BinaryOperatorI {
 		{
 			MatrixValueI lhs = (MatrixValueI) lhsObj;
 			MatrixValueI rhs = (MatrixValueI) rhsObj;
-			if(!lhs.getDim().equals(rhs.getDim()))
+			if(!lhs.getDim().equalsDim(rhs.getDim()))
 				throw new ParseException("ElementComparative: dimensions of both sides must be equal");
 			Dimensions dims = this.calcDim(lhs.getDim(),lhs.getDim());
 			MatrixValueI res = Tensor.getInstance(dims);

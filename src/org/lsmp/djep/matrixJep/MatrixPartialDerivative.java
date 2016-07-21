@@ -39,7 +39,14 @@ public class MatrixPartialDerivative extends PartialDerivative implements Matrix
 			setValidValue(false);
 			mvalue=Tensor.getInstance(var.getDimensions());
 	}
-	
+
+	protected MatrixPartialDerivative(MatrixVariable var, String derivnames[])
+	{
+		super(var,derivnames);
+		setValidValue(false);
+		mvalue=Tensor.getInstance(var.getDimensions());
+	}
+
 	public Dimensions getDimensions()
 	{
 		MatrixVariableI root = (MatrixVariableI) getRoot();

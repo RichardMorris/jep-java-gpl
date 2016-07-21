@@ -14,6 +14,8 @@ import org.lsmp.djep.groupJep.interfaces.*;
 public class Quaternions extends Group implements RingI {
 
 	public static class Quaternion extends Number {
+		private static final long serialVersionUID = 1L;
+
 		double x,y,z,w;
 		public Quaternion(double x,double y,double z,double w){
 			this.w = x; this.y = y; this.z=z; this.w=w;
@@ -112,5 +114,8 @@ public class Quaternions extends Group implements RingI {
 		j.addConstant("k",K);
 	}
 	public String toString() {return "Quaternions";}
+	public Number valueOf(Number num) {
+		return new Quaternion(num.doubleValue(),0,0,0);
+	}
 
 }

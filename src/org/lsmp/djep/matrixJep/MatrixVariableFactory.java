@@ -16,12 +16,8 @@ import org.nfunk.jep.Variable;
  */
 public class MatrixVariableFactory extends DVariableFactory {
 
-	/** create a derivative */
-	public PartialDerivative createDerivative(DVariable var,String[] dnames,Node eqn) {
-		return null;
-	}
-
 	/** Create a variable with a given value. */
+	//@Override
 	public Variable createVariable(String name, Object value) {
 		if(defaultValue!=null)
 			return new MatrixVariable(name,defaultValue);
@@ -30,6 +26,7 @@ public class MatrixVariableFactory extends DVariableFactory {
 	}
 
 	/** Create a variable with a given value. */
+	//@Override
 	public Variable createVariable(String name) {
 		return new MatrixVariable(name);
 	}

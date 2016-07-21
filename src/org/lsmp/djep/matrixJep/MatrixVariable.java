@@ -35,7 +35,7 @@ public class MatrixVariable extends DVariable implements MatrixVariableI {
 	 * The constructor is package private. Variables should be created
 	 * using the VariableTable.find(Sting name) method.
 	 */
-	MatrixVariable(String name) 
+	protected MatrixVariable(String name) 
 	{ 
 		super(name);
 		this.dims = Dimensions.ONE;
@@ -43,7 +43,7 @@ public class MatrixVariable extends DVariable implements MatrixVariableI {
 		setValidValue(false);
 	}
 
-	MatrixVariable(String name,Object value) 
+	protected MatrixVariable(String name,Object value) 
 	{ 
 		super(name);
 		if(value == null)
@@ -101,7 +101,7 @@ public class MatrixVariable extends DVariable implements MatrixVariableI {
 	
 //	public void setMValue(VectorMatrixTensorI value) 
 //	{ this.mvalue = value; this.invalidateAll(); }
-	
+/*	
 	public void print(PrintVisitor bpv)
 	{
 		StringBuffer sb = new StringBuffer(name);
@@ -127,6 +127,6 @@ public class MatrixVariable extends DVariable implements MatrixVariableI {
 		}
 		System.out.print(sb.toString());
 	}
-	
+*/	
 
 }

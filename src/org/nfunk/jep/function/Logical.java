@@ -42,8 +42,8 @@ public class Logical extends PostfixMathCommand
 			y = ((Number)param2).doubleValue();
 		else if((param2 instanceof Boolean))
 			y= ((Boolean) param2).booleanValue()?1.0:0.0;
-		else throw new ParseException("Logical: require a number or Boolean value on lhs, have "+
-				param1.getClass().getName());
+		else throw new ParseException("Logical: require a number or Boolean value on rhs, have "+
+				param2.getClass().getName());
 		
 		int r;
 			

@@ -35,6 +35,7 @@ public class DJepTest extends XJepTest {
 	
 	protected void setUp() {
 		j = new DJep();
+		j.addVariable("x", 1.0);
 		j.addStandardConstants();
 		j.addStandardFunctions();
 		j.addComplex();

@@ -8,7 +8,7 @@ import junit.framework.TestCase;
 
 public class LogarithmTest extends TestCase {
 
-	LogarithmTest(String name) {
+	public LogarithmTest(String name) {
 		super(name);
 	}
 

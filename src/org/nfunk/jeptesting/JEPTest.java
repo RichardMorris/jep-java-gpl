@@ -78,7 +78,6 @@ public class JEPTest extends TestCase {
 		testWithFile(fileName);
 		testGetValue();
 		testGetComplexValue();
-		testOpSetBug();
 	}
 	
 	/**
@@ -104,6 +103,10 @@ public class JEPTest extends TestCase {
 		jt.testWithFile(fileName);
 	}
 
+	public void testWithFile() {
+		testWithFile("JEPTestExpressions.txt");
+	}
+	
 	/**
 	 * Loads the file specified in fileName. Evaluates the expressions listed
 	 * in it and compares the expressions with the results.
@@ -143,17 +146,13 @@ public class JEPTest extends TestCase {
 				println("Reached end of file.");
 				break;
 			}
-
+	
 			// compare the results
-			try {			
-				if (!equal(v1, v2)) {
-					hasError = true;
-					print("Line: " + lineCount + ": ");
-					println(v1.toString() + " != " + v2.toString());
-				}
-			} catch (Exception e) {
+			if (!equal(v1, v2)) {
 				hasError = true;
-				println(e.getMessage());
+				print("Line: " + lineCount + ": ");
+				println(v1.toString() + " != " + v2.toString());
+				Assert.fail();
 			}
 		}
 		
@@ -208,7 +207,7 @@ public class JEPTest extends TestCase {
 	 * Compares o1 and o2. Copied from Comparative.java.
 	 * @return true if o1 and o2 are equal. false otherwise.
 	 */
-	private boolean equal(Object param1, Object param2) throws Exception
+	private boolean equal(Object param1, Object param2)
 	{
 		double tolerance = 1e-15;
 		if ((param1 instanceof Complex) && (param2 instanceof Complex)) {
@@ -226,8 +225,6 @@ public class JEPTest extends TestCase {
 		}
 		// test any other types here
 		return param1.equals(param2);
-		
-//		throw new Exception("Unable to compare the values of this type");
 	}
 
 	/**
@@ -267,14 +264,7 @@ public class JEPTest extends TestCase {
 		myParser.parseExpression("\"asdf\"");
 		Assert.assertTrue(Double.isNaN(myParser.getValue()));
 	}
-	
-	/**
-	 * Tests the uninitialized OperatorSet bug 1061200
-	 */
-	public void testOpSetBug() {
-		JEP j = new JEP(false, true, true, null);
-		Assert.assertNotNull(j.getOperatorSet());
-	}
+
 
 	/**
 	 * Helper function for printing.

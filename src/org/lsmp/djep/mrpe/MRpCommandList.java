@@ -46,15 +46,24 @@ public final class MRpCommandList {
 				case MRpEval.NE: return "NE\ttype "+MRpEval.dimTypeToDimension(aux1);
 				case MRpEval.EQ: return "EQ\ttype "+MRpEval.dimTypeToDimension(aux1);
 	
-				case MRpEval.ASSIGN: return "Assign type "+MRpEval.dimTypeToDimension(aux1)+" no "+aux2;
 				case MRpEval.LIST: return "List type "+MRpEval.dimTypeToDimension(aux1);
 				case MRpEval.DOT: return "Dot type "+MRpEval.dimTypeToDimension(aux1);
 				case MRpEval.CROSS: return "Cross type "+MRpEval.dimTypeToDimension(aux1);
-
-				case MRpEval.FUN: return "Function\tnum "+aux1;
+				
+                case MRpEval.ASSIGN: return "Assign type "+MRpEval.dimTypeToDimension(aux1)+" no "+aux2;
+                case MRpEval.VLIST: return "VList "+aux1;
+                case MRpEval.MLIST: return "MList "+aux1+", "+aux2;
 				case MRpEval.UMINUS: return "UMinus\ttype "+MRpEval.dimTypeToDimension(aux1);
+                case MRpEval.POWN: return "Power x^"+aux1;
+                case MRpEval.RECIP: return "RECIP";
+				
+
+				case MRpEval.FUN0: return "Function\tnum "+aux1;
+				case MRpEval.FUN1: return "Function\tnum "+aux1;
+				case MRpEval.FUN2: return "Function\tnum "+aux1;
+				case MRpEval.FUN3: return "Function\tnum "+aux1;
+				default: return "Function\tnum "+aux1;
 			}
-			return "Warning unknown command: "+command+" "+aux1+" "+aux2;
 		}
 	}
 

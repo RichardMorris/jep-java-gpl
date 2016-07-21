@@ -30,7 +30,7 @@ public class Reals extends Group implements FieldI,OrderedSetI,HasPowerI {
 	}
 
 	public Number getInverse(Number num) {
-		return new Double(1.0/num.doubleValue());
+		return new Double(-num.doubleValue());
 	}
 
 	public Number getMulInverse(Number num) {
@@ -71,6 +71,11 @@ public class Reals extends Group implements FieldI,OrderedSetI,HasPowerI {
 	
 	public String toString() {
 		return "Reals (represented as Doubles)";
+	}
+
+	public Number valueOf(Number num) {
+		if(num instanceof Double) return num;
+		return new Double(num.doubleValue());
 	}
 
 }

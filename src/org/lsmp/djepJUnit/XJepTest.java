@@ -10,6 +10,11 @@ import java.util.Vector;
 
 import org.nfunk.jep.*;
 import org.nfunk.jep.type.Complex;
+import org.lsmp.djep.rewrite.CollectPowers;
+import org.lsmp.djep.rewrite.ExpandBrackets;
+import org.lsmp.djep.rewrite.RewriteRuleI;
+import org.lsmp.djep.rewrite.RewriteVisitor;
+import org.lsmp.djep.sjep.PolynomialCreator;
 import org.lsmp.djep.xjep.*;
 
 import junit.framework.Test;
@@ -613,6 +618,67 @@ public class XJepTest extends JepTest {
 	    //xj.preprocess(n);
 	    //valueTest("sumToX(4)",10);
 	}
+	
+	public void testTreeBuild() throws Exception
+	{
+	    XJep xj = (XJep) j;
+	    xj.setAllowUndeclared(true);
+	    NodeFactory nf = xj.getNodeFactory();
+	    OperatorSet os = xj.getOperatorSet();
+	    Node n = nf.buildOperatorNode(
+	    		os.getAdd(),
+	    		nf.buildOperatorNode(
+	    				os.getMultiply(),
+	    				nf.buildConstantNode(new Double(3)),
+	    				nf.buildVariableNode("x",null)),
+	    		nf.buildConstantNode(new Double(5)));
+	    
+	}
+	
+	public void testSub() throws Exception
+	{
+	    XJep xj = (XJep) j;
+	    Node orig = xj.parse("a+b*c+sin(b)");
+	    Node o1 = xj.deepCopy(orig);
+	    Node s1 = xj.parse("x^2");
+	    Node r1 = xj.substitute(o1, "a", s1);
+	    this.myAssertEquals("substitution", "x^2.0+b*c+sin(b)", xj.toString(r1));
+	    Node o2 = xj.deepCopy(orig);
+	    Node s2 = xj.parse("b=x^2");
+	    Node r2 = xj.substitute(o2,s2);
+	    this.myAssertEquals("substitution", "a+x^2.0*c+sin(x^2.0)", xj.toString(r2));
+	}
+	
+	public void testBug28() throws Exception {
+	    XJep xj = (XJep) j;
+	    String eqn = "x+y";
+	    String rep = "z^2";
+	    Node n1 = xj.parse(eqn);
+	    Node n2 = xj.parse(rep);
+	    Node n3 = xj.substitute(n1,"x",n2);
+	    String res = xj.toString(n3);
+	    assertEquals("z^2.0+y",res);
+	}
+
+	public void testExpand() throws Exception {
+	    XJep xj = (XJep) j;
+	    PolynomialCreator pc = new PolynomialCreator(xj);
+	    String eqn = "3(x + 0)(x + 1) + 5(x + 0)";
+	    //String res = " 3x^2 + 8x";
+	    Node n1 = xj.parse(eqn);
+	    Node n2 = pc.expand(n1);
+	    xj.println(n2);
+	    
+	    RewriteVisitor rv = new RewriteVisitor();
+		RewriteRuleI expand = new ExpandBrackets(xj);
+		RewriteRuleI colectPower = new CollectPowers(xj);
+		RewriteRuleI rules[] = new RewriteRuleI[]{expand,colectPower};
+	    Node n3 = rv.rewrite(n1, xj, rules,	true);
+	    xj.println(n3);
+	    //System.out.println(res);
+	    //assertEquals("z^2.0+y",res);
+	}
+
 	public void testBad() throws Exception
 	{
 		if(SHOW_BAD)

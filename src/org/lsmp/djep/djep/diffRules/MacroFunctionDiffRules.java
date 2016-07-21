@@ -22,26 +22,34 @@ import org.nfunk.jep.*;
 		  name = fun.getName();
 		  pfmc = fun;
 		  
-		XSymbolTable localSymTab = (XSymbolTable) ((XSymbolTable) djep.getSymbolTable()).newInstance(); //new SymbolTable();
-		localSymTab.copyConstants(djep.getSymbolTable());
+		XSymbolTable localSymTab = ((XSymbolTable) djep.getSymbolTable()).newInstance(); //new SymbolTable();
 		DJep localJep = (DJep) djep.newInstance(localSymTab);
 
 		  int nargs = fun.getNumberOfParameters();
 		  rules = new Node[nargs];
-		  if(nargs == 1)
+		  this.descriptions = new String[nargs];
+		  if(nargs == 1) {
 			  rules[0] = localJep.differentiate(fun.getTopNode(),"x");
+			  rules[0] = localJep.simplify(rules[0]);
+			  descriptions[0] = "diff("+name+",x) -> "+localJep.toString(rules[0]);
+		  }
 		  else if(nargs == 2)
 		  {
 			  rules[0] = localJep.differentiate(fun.getTopNode(),"x");
 			  rules[1] = localJep.differentiate(fun.getTopNode(),"y");
+			  rules[0] = localJep.simplify(rules[0]);
+			  rules[1] = localJep.simplify(rules[1]);
+			  descriptions[0] = "diff("+name+",x) -> "+localJep.toString(rules[0]);
+			  descriptions[1] = "diff("+name+",y) -> "+localJep.toString(rules[1]);
 		  }
 		  else
 		  {
-			  for(int i=0;i<nargs;++i)
+			  for(int i=0;i<nargs;++i) {
 				  rules[i] = localJep.differentiate(fun.getTopNode(),"x"+ String.valueOf(i));
+				  rules[i] = localJep.simplify(rules[i]);
+				  descriptions[i] = "diff("+name+",x"+String.valueOf(i)+" -> " +localJep.toString(rules[i]);
+			  }
 		  }
-		  for(int i=0;i<nargs;++i)
-				rules[i] = localJep.simplify(rules[i]);
 		  //fixVarNames();
 	  }
   }

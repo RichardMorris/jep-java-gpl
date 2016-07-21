@@ -29,19 +29,20 @@ import org.nfunk.jep.function.PostfixMathCommandI;
 public class CommandVisitor extends DoNothingVisitor
 {
   private XJep xjep;
-  /** private default constructor to prevent init without a tree utils
+  /** private default constructor to prevent initilisation without a tree utils
    */
-    public CommandVisitor()
-  {
-  }
-  
+    public CommandVisitor(XJep xj)
+    {
+      	this.xjep=xj;
+    }
+
+    private CommandVisitor() {}
   /** 
    * Descends the tree processing all diff, eval and simplify options
    */
 
-  public Node process(Node node,XJep xj) throws ParseException
+  public Node process(Node node) throws ParseException
   {
-  	this.xjep=xj;
 	Node res = (Node) node.jjtAccept(this,null);
 	return res;
   }

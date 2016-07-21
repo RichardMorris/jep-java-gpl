@@ -38,7 +38,7 @@ public class Polar extends PostfixMathCommand
 		}
 		else
 		{
-			throw new ParseException("Complex: Invalid parameter types "+param1.getClass().getName()+" "+param1.getClass().getName());
+			throw new ParseException("Complex: Invalid parameter types "+param1.getClass().getName()+" "+param2.getClass().getName());
 		}
 		return;
 	}

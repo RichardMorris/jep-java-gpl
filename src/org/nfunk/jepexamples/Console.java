@@ -59,6 +59,8 @@ class Console {
 		j.addStandardConstants();
 		j.addStandardFunctions();
 		j.addComplex();
+		j.setAllowAssignment(true);
+		j.setAllowUndeclared(true);
 		//j.setTraverse(true);
 
 		if (args.length>0) {

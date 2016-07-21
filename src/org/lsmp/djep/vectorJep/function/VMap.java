@@ -107,7 +107,7 @@ public class VMap
 				if(i==0) dim = inputs[0].getDim();
 				else
 				{
-					if(!dim.equals(inputs[i].getDim()))
+					if(!dim.equalsDim(inputs[i].getDim()))
 						throw new ParseException("Map: dimensions of thrid and subsequent arguments must match");
 				}
 			}

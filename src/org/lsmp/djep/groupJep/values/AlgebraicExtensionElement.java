@@ -15,6 +15,7 @@ import org.lsmp.djep.groupJep.groups.AlgebraicExtension;
  * Created on 09-Mar-2004
  */
 public class AlgebraicExtensionElement extends FreeGroupElement {
+	private static final long serialVersionUID = 1L;
 
 	AlgebraicExtension ae;
 

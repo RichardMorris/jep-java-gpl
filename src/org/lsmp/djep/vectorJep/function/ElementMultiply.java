@@ -23,7 +23,7 @@ public class ElementMultiply extends Multiply implements NaryOperatorI {
 		
 		Dimensions firstDim = dims[0];
 		for(int i=1;i<len;++i)
-			if(!firstDim.equals(dims[i]))
+			if(!firstDim.equalsDim(dims[i]))
 				throw new ParseException("ElementMultiply: dimensions of each argument should be the same");
 		
 		return firstDim;

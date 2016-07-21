@@ -15,16 +15,15 @@ import org.lsmp.djep.rpe.*;
  */
 public class RpSpeed {
 	static JEP j;
-	static int num_itts = 1000000; // for normal use
+	static int num_itts = 100000; // for normal use
 //	static int num_itts = 1000;	  // for use with profiler
 	static long seed; // seed for random number generator
 	static int num_vals = 1000; // number of random numbers selected
+	static int nDeriv = 50;
 	public static void main(String args[])	{
 		long t1 = System.currentTimeMillis();
 		initJep();
 		long t2 = System.currentTimeMillis();
-		System.out.println("Jep initialise "+(t2-t1));
-
 		doAll("5",new String[]{});
 		doAll("x",new String[]{"x"});
 		doAll("1+x",new String[]{"x"});
@@ -43,6 +42,19 @@ public class RpSpeed {
 		doAll("1*2*3+4*5*6+7*8*9",new String[]{});
 		doAll("x1*x2*x3+x4*x5*x6+x7*x8*x9",new String[]{"x1","x2","x3","x4","x5","x6","x7","x8","x9"});
 		doAll("cos(x)^2+sin(x)^2",new String[]{"x"});
+
+		StringBuffer sb = new StringBuffer();
+		for(int i=1;i<=nDeriv ;++i)
+		{
+			if(i%2==0)
+				sb.append("-");
+			else
+				sb.append("+");
+			sb.append("x^"+i+"/"+i);
+		}
+		String expression = sb.toString();
+		doAll(expression,new String[]{"x"});
+		doLn();
 	}
 	
 	/** Run speed comparison  between jep and rpe.
@@ -69,19 +81,39 @@ public class RpSpeed {
 	
 		long tj = doJep(eqn,vars,varVals);
 		long tr = doRpe(eqn,vars,varVals);
-		System.out.println("Speed up:\t"+(tj/tr));
+		if(tr!=0)
+			System.out.println("Speed up:\t"+(tj/tr));
+		else
+			System.out.println("Speed up:\t"+tj+"/0");
 		//System.out.println("<tr><td>"+eqn+"</td><td>"+tj+"</td><td>"+tr+"</td></tr>");
 	}
 
 	static void initJep()
 	{
+		Runtime rt = Runtime.getRuntime();
+		long max = rt.maxMemory();
+		long free = rt.freeMemory();
+		long tot = rt.totalMemory();
+		System.out.println("Tot "+tot+" free "+free+" max "+max+" tot-free "+(tot-free));
+
 		j = new JEP();
+
+		max = rt.maxMemory();
+		free = rt.freeMemory();
+		tot = rt.totalMemory();
+		System.out.println("Tot "+tot+" free "+free+" max "+max+" tot-free "+(tot-free));
+		
 		j.addStandardConstants();
 		j.addStandardFunctions();
 		j.addComplex();
 		j.setAllowUndeclared(true);
 		j.setImplicitMul(true);
 		j.setAllowAssignment(true);
+
+		max = rt.maxMemory();
+		free = rt.freeMemory();
+		tot = rt.totalMemory();
+		System.out.println("Tot "+tot+" free "+free+" max "+max+" tot-free "+(tot-free));
 	}
 	
 	static long doJep(String eqn2,Variable vars[],Double vals[][])
@@ -171,6 +203,66 @@ public class RpSpeed {
 		{
 			x = varVals[i%num_vals].doubleValue();
 			y = 1+x*(1+x*(1+x*(1+x*(1+x))));
+		}
+		long t2 = System.currentTimeMillis();
+		System.out.println("Using Java:\t"+(t2-t1));
+	}
+
+	static final double powN(double r,short n){
+		switch(n){
+			case 0: r = 1.0; break;
+			case 1: break;
+			case 2: r *= r; break;
+			case 3: r *= r*r; break;
+			case 4: r *= r*r*r; break;
+			case 5: r *= r*r*r*r; break;
+			case 6: r *= r*r*r*r*r; break;
+			case 7: r *= r*r*r*r*r*r; break;
+			case 8: r *= r*r*r*r*r*r*r; break;
+			default:
+			   {
+				   short bitMask = n;
+				   double evenPower = r;
+				   double result;
+				   if ( (bitMask & 1) != 0 )
+				      result = r;
+				   else
+				      result = 1;
+				   bitMask >>>= 1;
+				   while ( bitMask != 0 ) {
+				      evenPower *= evenPower;
+				      if ( (bitMask & 1) != 0 )
+				         result *= evenPower;
+				      bitMask >>>= 1;
+				   } // end while
+				r = result;
+			   }
+		}
+		return r;
+	} 
+
+	static void doLn()
+	{
+		Double varVals[] = new Double[num_vals];
+		Random generator = new Random(seed);
+		for(int j=0;j<num_vals;++j)
+			varVals[j] = new Double(generator.nextDouble());
+		
+		long t1 = System.currentTimeMillis();
+		double x; 
+		double y;
+		for(int i=0;i<num_itts;++i)
+		{
+			x = varVals[i%num_vals].doubleValue();
+			double res = 0;
+			for(int j=1;j<nDeriv;++j)
+			{
+				double val = powN(x,(short) j)/j;
+				if(j%2==0)
+					res -= val;
+				else
+					res += val;
+			}
 		}
 		long t2 = System.currentTimeMillis();
 		System.out.println("Using Java:\t"+(t2-t1));

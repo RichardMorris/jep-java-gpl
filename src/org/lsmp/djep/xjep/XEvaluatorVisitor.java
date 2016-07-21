@@ -56,6 +56,7 @@ public class XEvaluatorVisitor extends EvaluatorVisitor {
 				String message = "Could not evaluate " + node.getName() + ": null value";
 				throw new ParseException(message);
 			}
+			var.setValue(val);
 		}
 		else
 		{

@@ -7,8 +7,9 @@
 
 *****************************************************************************/
 package org.nfunk.jep.function;
-import java.util.*;
-import org.nfunk.jep.*;
+import java.util.Stack;
+
+import org.nfunk.jep.ParseException;
 
 /**
  * Function classes extend this class. It is an implementation of the 
@@ -29,7 +30,7 @@ public class PostfixMathCommand implements PostfixMathCommandI
 	
 	/**
 	 * Number of parameters to be used for the next run() invocation. Applies
-	 * only if the required umber of parameters is variable
+	 * only if the required number of parameters is variable
 	 * (numberOfParameters = -1).
 	 */
 	protected int curNumberOfParameters;

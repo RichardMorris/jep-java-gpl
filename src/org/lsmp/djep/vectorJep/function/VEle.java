@@ -62,7 +62,7 @@ public class VEle extends PostfixMathCommand implements BinaryOperatorI {
 			else if(param2 instanceof MVector)
 			{
 				MVector vec = (MVector) param2;
-				if(vec.getDim().equals(Dimensions.ONE))
+				if(vec.getDim().equalsDim(Dimensions.ONE))
 				{
 					int d1 = ((Number) vec.getEle(0)).intValue();
 					if( d1<1 || d1 > ((MVector) param1).getNumEles())
@@ -78,7 +78,7 @@ public class VEle extends PostfixMathCommand implements BinaryOperatorI {
 			if(param2 instanceof MVector)
 			{
 				MVector vec = (MVector) param2;
-				if(vec.getDim().equals(Dimensions.TWO))
+				if(vec.getDim().equalsDim(Dimensions.TWO))
 				{
 					int d1 = ((Number) vec.getEle(0)).intValue();
 					int d2 = ((Number) vec.getEle(1)).intValue();
@@ -123,7 +123,7 @@ public class VEle extends PostfixMathCommand implements BinaryOperatorI {
 			else if(param2 instanceof MVector)
 			{
 				MVector vec = (MVector) param2;
-				if(vec.getDim().equals(Dimensions.ONE))
+				if(vec.getDim().equalsDim(Dimensions.ONE))
 				{
 					int d1 = ((Number) vec.getEle(0)).intValue();
 					if( d1<1 || d1 > ((MVector) param1).getNumEles())
@@ -140,7 +140,7 @@ public class VEle extends PostfixMathCommand implements BinaryOperatorI {
 			if(param2 instanceof MVector)
 			{
 				MVector vec = (MVector) param2;
-				if(vec.getDim().equals(Dimensions.TWO))
+				if(vec.getDim().equalsDim(Dimensions.TWO))
 				{
 					int d1 = ((Number) vec.getEle(0)).intValue();
 					int d2 = ((Number) vec.getEle(1)).intValue();

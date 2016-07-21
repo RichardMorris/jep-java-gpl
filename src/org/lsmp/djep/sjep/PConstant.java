@@ -149,7 +149,7 @@ public class PConstant extends AbstractPNode {
 	}
 
 
-	public boolean equals(PNodeI node)
+	public boolean equalsPNode(PNodeI node)
 	{
 		if(node instanceof PConstant)
 			return value.equals(((PConstant)node).value);

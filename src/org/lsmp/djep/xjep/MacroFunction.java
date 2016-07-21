@@ -27,9 +27,9 @@ import java.util.*;
 public class MacroFunction extends PostfixMathCommand
 {
 	private String name;
-	private Node topNode;
+	protected Node topNode;
 	private EvaluatorI ev;
-//	private XJep localJep;
+	protected XJep localJep;
 	private XSymbolTable mySymTab;
 	private Variable vars[];
 	
@@ -52,8 +52,9 @@ public class MacroFunction extends PostfixMathCommand
 
 		XSymbolTable jepSymTab = (XSymbolTable) jep.getSymbolTable();
 		mySymTab = (XSymbolTable) jepSymTab.newInstance(); 
-		mySymTab.copyConstants(jepSymTab);
-		XJep localJep = jep.newInstance(mySymTab);
+		localJep = jep.newInstance(mySymTab);
+		ev = localJep.getEvaluatorVisitor();
+		
 		numberOfParameters = nargs;
 
 		if(numberOfParameters == 0) {}
@@ -73,13 +74,13 @@ public class MacroFunction extends PostfixMathCommand
 		}
 
 		topNode = localJep.parse(expression);
-		ev = new EvaluatorVisitor(mySymTab);
 	}
 	
 	/**
 	 * Calculates the value of the expression.
 	 * @throws ParseException if run.
 	 */
+	//@SuppressWarnings("unchecked")
 	public void run(Stack stack) throws ParseException 
 	{
 

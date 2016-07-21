@@ -45,7 +45,7 @@ public class MutiableMonomial
 	public void mul(PNodeI term,PNodeI power) throws ParseException
 	{
 		for(int i=0;i<length;++i) {
-			if(terms[i].equals(term)) {
+			if(terms[i].equalsPNode(term)) {
 				powers[i] = powers[i].add(power);
 				return;
 			}

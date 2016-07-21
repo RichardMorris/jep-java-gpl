@@ -21,7 +21,7 @@ public class PVariable extends AbstractPNode {
 		this.variable = var;
 	}
 
-	public boolean equals(PNodeI node)
+	public boolean equalsPNode(PNodeI node)
 	{
 		if(node instanceof PVariable)
 			if(variable.equals(((PVariable)node).variable))

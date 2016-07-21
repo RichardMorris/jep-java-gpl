@@ -2,15 +2,18 @@
  * Created on 07-Jul-2003
  */
 package org.lsmp.djep.vectorJep.values;
+import java.io.Serializable;
+
 import org.lsmp.djep.vectorJep.*;
 
 /**
- * Represents tensor (generalisation of Matrix/Vector).
+ * Represents tensor (generalization of Matrix/Vector).
  * @author Rich Morris
  * Created on 07-Jul-2003
  * @version 1.3.0.2 now extends number
  */
-public class Tensor implements MatrixValueI {
+public class Tensor implements MatrixValueI, Serializable {
+	private static final long serialVersionUID = 6455418949362958844L;
 	private Object values[]=null;
 	private Dimensions dims;
 	//DoubleMatrix jsciMat;
@@ -50,7 +53,7 @@ public class Tensor implements MatrixValueI {
 	/** sets the elements to those of the arguments. */
 	public void setEles(MatrixValueI val)
 	{
-		if(!dims.equals(val.getDim())) return;
+		if(!dims.equalsDim(val.getDim())) return;
 		System.arraycopy(((Tensor) val).values,0,values,0,getNumEles());
 	}
 
@@ -128,7 +131,7 @@ public class Tensor implements MatrixValueI {
 	public boolean equals(Object obj) {
 		if(!(obj instanceof Tensor)) return false;
 		Tensor tens = (Tensor) obj;
-		if(!tens.getDim().equals(getDim())) return false;
+		if(!tens.getDim().equalsDim(getDim())) return false;
 		for(int i=0;i<values.length;++i)
 				if(!values[i].equals(tens.values[i])) return false;
 		return true;
@@ -136,7 +139,7 @@ public class Tensor implements MatrixValueI {
 
 	/**
 	 * Always override hashCode when you override equals.
-	 * Efective Java, Joshua Bloch, Sun Press
+	 * Effective Java, Joshua Bloch, Sun Press
 	 */
 	public int hashCode() {
 		int result = 17;

@@ -4,13 +4,14 @@
 package org.lsmp.djep.groupJep.values;
 import java.math.*;
 /**
- * A Rational number with full precision. Represented as quotien of two
- * numbers (always in most reduced form with posative denominator).
+ * A Rational number with full precision. Represented as quotient of two
+ * numbers (always in most reduced form with positive denominator).
  * 
  * @author Rich Morris
  * Created on 05-Mar-2004
  */
 public class Rational extends Number implements Comparable {
+	private static final long serialVersionUID = 1L;
 
 	private BigInteger numerator;
 	private BigInteger denominator;

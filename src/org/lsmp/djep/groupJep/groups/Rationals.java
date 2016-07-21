@@ -71,4 +71,11 @@ public class Rationals extends Group implements FieldI,OrderedSetI,HasPowerI {
 	}
 	
 	public String toString() { return "Q"; }
+
+	public Number valueOf(Number num) {
+		if(num instanceof BigInteger)
+			return new Rational((BigInteger)num);
+		else
+			return new Rational(BigInteger.valueOf(num.longValue()));
+	}
 }

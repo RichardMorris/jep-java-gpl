@@ -24,28 +24,23 @@ public abstract class Group implements GroupI {
 		/** Return an object representing ZERO the additive identity. */
 		public Object getZero() { return getZERO() ; }
         public Object createNumber(double value) throws ParseException {
-            // TODO Auto-generated method stub
-            return null;
+            return valueOf(Double.valueOf(value));
         }
         public Object createNumber(int value) throws ParseException {
-            // TODO Auto-generated method stub
-            return null;
+            return valueOf(Integer.valueOf(value));
         }
         public Object createNumber(short value) throws ParseException {
-            // TODO Auto-generated method stub
-            return null;
+            return valueOf(Short.valueOf(value));
         }
         public Object createNumber(float value) throws ParseException {
-            // TODO Auto-generated method stub
-            return null;
+            return valueOf(Float.valueOf(value));
         }
         public Object createNumber(boolean value) throws ParseException {
             // TODO Auto-generated method stub
             return null;
         }
         public Object createNumber(Number value) throws ParseException {
-            // TODO Auto-generated method stub
-            return null;
+            return valueOf(value);
         }
         public Object createNumber(Complex value) throws ParseException {
             // TODO Auto-generated method stub

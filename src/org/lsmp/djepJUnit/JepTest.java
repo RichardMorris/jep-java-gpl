@@ -524,7 +524,7 @@ a3 = if(a1 > 0 && ApportionmentAmt < 1000,
 	        j.parse("zap * wow");
 	        fail("Should have found undeclared error");
 	    } catch(ParseException e) {
-	        System.out.println("Error caught: "+e.getMessage());
+	        System.out.println("Expected error caught: "+e.getMessage());
 	    }
 	    try {
 	        j.setVarValue("foo",new Double(5.0));

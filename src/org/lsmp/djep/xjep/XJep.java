@@ -5,7 +5,6 @@ package org.lsmp.djep.xjep;
 
 import org.nfunk.jep.*;
 import org.nfunk.jep.function.Exp;
-import org.nfunk.jep.function.PostfixMathCommandI;
 import org.lsmp.djep.xjep.PrintVisitor.PrintRulesI;
 import org.lsmp.djep.xjep.function.*;
 import java.util.*;
@@ -24,6 +23,7 @@ public class XJep extends JEP {
 	/** A few utility functions. */
 	protected TreeUtils tu = null;
 	protected DeepCopyVisitor copier = null;
+	protected ImportationVisitor importer = null;
 	protected SubstitutionVisitor subv = null;
 	protected SimplificationVisitor simpv = null;
 	protected CommandVisitor commandv = null;
@@ -44,11 +44,12 @@ public class XJep extends JEP {
 		/* A few utility functions. */
 		tu = new TreeUtils();
 		
-		copier = new DeepCopyVisitor();
+		copier = new DeepCopyVisitor(this);
 		subv = new SubstitutionVisitor();
 		ev = new XEvaluatorVisitor(this.getSymbolTable());
 		simpv = new SimplificationVisitor();
-		commandv = new CommandVisitor();
+		commandv = new CommandVisitor(this);
+		importer = new ImportationVisitor(this);
 		pv = new PrintVisitor();
 		pv.addSpecialRule(opSet.getElement(),new PrintRulesI() {
 			public void append(Node node, PrintVisitor pv) throws ParseException {
@@ -61,15 +62,16 @@ public class XJep extends JEP {
 	protected XJep(XJep j)
 	{
 		super(j);
-		this.commandv=j.commandv;
-		this.copier=j.copier;
+		this.commandv=new CommandVisitor(this);
+		this.copier=new DeepCopyVisitor(this);
 		this.ev=j.ev;
-		this.nf=j.nf;
+		this.nf=new NodeFactory(this);
 		this.opSet=j.opSet;
 		this.pv=j.pv;
 		this.simpv=j.simpv;
 		this.subv=j.subv;
 		this.tu=j.tu;
+		this.importer=new ImportationVisitor(this);
 	}
 
 	private JEP ingrediant = null;
@@ -88,11 +90,11 @@ public class XJep extends JEP {
 		opSet = new XOperatorSet(j.getOperatorSet());
 		/* A few utility functions. */
 		tu = new TreeUtils();
-		copier = new DeepCopyVisitor();
+		copier = new DeepCopyVisitor(this);
 		subv = new SubstitutionVisitor();
 		ev = new XEvaluatorVisitor(this.getSymbolTable());
 		simpv = new SimplificationVisitor();
-		commandv = new CommandVisitor();
+		commandv = new CommandVisitor(this);
 		pv = new PrintVisitor();
 	}
 	/**
@@ -104,6 +106,19 @@ public class XJep extends JEP {
 		XJep newJep = new XJep(this);
 		return newJep;
 	}
+
+	/**
+	 * Creates a new instance of XJep with the same components as this one.
+	 * @param flag if true create a new instance of the symbol table otherwise use the existing symbol table.
+	 */
+	public XJep newInstance(boolean flag)
+	{
+		if(flag)
+			return newInstance(((XSymbolTable)this.symTab).newInstance());
+		else
+			return newInstance();
+	}
+
 	/**
 	 * Creates a new instance of XJep with the same components as this one and the specified symbol table.
 	 * Sub classes should overwrite this method to create objects of the correct type.
@@ -112,6 +127,7 @@ public class XJep extends JEP {
 	{
 		XJep newJep = new XJep(this);
 		newJep.symTab = st;
+		newJep.ev = new XEvaluatorVisitor(st);
 		return newJep;
 	}
 
@@ -182,7 +198,7 @@ public class XJep extends JEP {
 	/** Returns a deep copy of an expression tree. */
 	public Node deepCopy(Node node) throws ParseException
 	{
-		return copier.deepCopy(node,this);
+		return copier.deepCopy(node);
 	}
 	/** Returns a simplification of an expression tree. */
 	public Node simplify(Node node) throws ParseException
@@ -192,7 +208,7 @@ public class XJep extends JEP {
 	/** Pre-processes an equation to allow the diff and eval operators to be used. */
 	public Node preprocess(Node node) throws ParseException
 	{
-		return commandv.process(node,this);
+		return commandv.process(node);
 	}
 	/** Substitute all occurrences of a named variable with an expression tree. */ 
 	public Node substitute(Node orig,String name,Node replacement) throws ParseException
@@ -204,6 +220,19 @@ public class XJep extends JEP {
 	{
 		return subv.substitute(orig,names,replacements,this);
 	}
+	/** Substitute all occurrences of the variable on the left hand side of sub with the expression tree on the right hand side. */ 
+	public Node substitute(Node orig, Node sub)  throws ParseException {
+		return subv.substitute(orig, sub, this);
+	}
+	/** Substitute all occurrences of the variable on the left hand side of sub with the expression tree on the right hand side. */ 
+	public Node substitute(Node orig, Node[] subs)  throws ParseException {
+		return subv.substitute(orig, subs, this);
+	}
+	/** Substitute all occurrences of the variable with their values. */ 
+	public Node substitute(Node orig, String[] names,Object[] values)  throws ParseException {
+		return subv.substitute(orig, names,values, this);
+	}
+	
 	/** Prints the expression tree on standard output. */
 	public void print(Node node) { pv.print(node); }
 	/** Prints the expression tree on given stream. */
@@ -303,7 +332,8 @@ public class XJep extends JEP {
 	 * For example if the equation is <code>a+b</code> and 
 	 * <code>a=c+d</code>, <code>b=c+e</code> then the
 	 * result will be the sequence <code>(c,d,a,e,b)</code>
-	 * 
+	 * For this method to work the equations must be preprocessed using
+	 * {@link preprocess}.
 	 * @param n top node
 	 * @param v vector for storing results, new variables will be added on the end.
 	 * @return v, the ordered sequence of variables
@@ -328,12 +358,17 @@ public class XJep extends JEP {
 		return v;
 	}
 	
-    /**
-     *
-     */
+	/**
+	 * Imports an expression from a different XJep instance.
+	 * This methods will build a new expression tree with variables created from this instances 
+	 * VaribleFactory and corresponding to those in this instances SymbolTable.
+	 * 
+	 * @param node
+	 * @return a new tree of nodes suitable for use in this instance
+	 */
+	public Node importExpression(Node node) throws ParseException
+	{
+		return importer.importExpression(node);
+	}
 
-    public Object evaluate(PostfixMathCommandI pfmc,Node node) throws ParseException {
-        // TODO Auto-generated method stub
-        return super.evaluate(node);
-    }
 }

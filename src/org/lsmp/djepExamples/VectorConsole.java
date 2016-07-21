@@ -6,6 +6,9 @@
 package org.lsmp.djepExamples;
 
 import org.lsmp.djep.vectorJep.*;
+import org.lsmp.djep.xjep.PrintVisitor;
+import org.nfunk.jep.Node;
+import org.nfunk.jep.ParseException;
 
 /**
  * @author Rich Morris
@@ -14,7 +17,8 @@ import org.lsmp.djep.vectorJep.*;
 public class VectorConsole extends Console
 {
 	private static final long serialVersionUID = -2335406063822614650L;
-
+	PrintVisitor pv=null;
+	
 	public static void main(String[] args) 
 	{
 		Console c = new VectorConsole();
@@ -35,6 +39,8 @@ public class VectorConsole extends Console
 		j.setAllowAssignment(true);
 		j.setAllowUndeclared(true);
 		j.setImplicitMul(true);
+		pv = new PrintVisitor();
+		pv.setMaxLen(80);
 	}
 
 	public void printHelp()
@@ -67,6 +73,21 @@ public class VectorConsole extends Console
 			return false;
 		}
 		return true;
+	}
+
+	/** Performs the required operation on a node. 
+	 * Typically evaluates the node and prints the value.
+	 * 
+	 * @param node Node representing expression
+	 * @throws ParseException if a Parse or evaluation error
+	 */ 
+	public void processEquation(Node node) throws ParseException
+	{
+		Object res = j.evaluate(node);
+		StringBuffer sb = new StringBuffer(res.toString());
+		if(quiet) return;
+		pv.printWrap(sb, System.out);
+		println("");
 	}
 
 }

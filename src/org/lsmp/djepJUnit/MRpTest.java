@@ -264,6 +264,42 @@ public class MRpTest extends TestCase {
 		rpe.cleanUp();
 	}
 
+	boolean aproxEquals(MatrixValueI mv1,MatrixValueI mv2,double prec) {
+		if(!mv1.getDim().equalsDim(mv2.getDim())) return false;
+		for(int i=0;i<mv1.getNumEles();++i) {
+			Object o1 = mv1.getEle(i);
+			Object o2 = mv2.getEle(i);
+			if(o1 instanceof Double && o2 instanceof Double) {
+				double d1 = ((Double) o1).doubleValue();
+				double d2 = ((Double) o2).doubleValue();
+				if(Math.abs(d1-d2) > prec) return false;
+			}
+			else if(!o1.equals(o2)) return false;
+		}
+		return true;
+	}
+	/** As before but don't test with MatrixJep.evaluate */
+	void rpTest2(String eqns[],double prec) throws ParseException
+	{
+		Node nodes[] = new Node[eqns.length];
+		MatrixValueI rpMats[] = new MatrixValueI[eqns.length];
+		MRpEval rpe = new MRpEval(mj);
+		for(int i=0;i<eqns.length;++i)	{
+			System.out.println("eqns "+eqns[i]);
+			nodes[i] = mj.simplify(mj.preprocess(mj.parse(eqns[i])));
+			MRpCommandList list = rpe.compile(nodes[i]);
+			MRpRes rpRes = rpe.evaluate(list);
+			rpMats[i] = rpRes.toVecMat();
+			System.out.println("<"+eqns[i]+"> "+rpRes.toString());
+		}
+		for(int i=0;i<eqns.length;++i)	{
+			Object matRes = mj.evaluateRaw(nodes[i]);
+			if(!aproxEquals(rpMats[i],(MatrixValueI) matRes,prec))
+					fail("Expected <"+matRes+"> found <"+rpMats[i]+">");
+		}		
+		rpe.cleanUp();
+	}
+
 	public void testRp() throws ParseException
 	{
 		rpTest(new String[]{"y=[[1,2,3],[4,5,6],[7,8,9]]"},"y*y");
@@ -521,7 +557,7 @@ public class MRpTest extends TestCase {
 		rpTest2(new String[]{"x=0.5","cos(x)","sin(x)","tan(x)","asin(x)","acos(x)","atan(x)"});
 		rpTest2(new String[]{"x=0.5","cosh(x)","sinh(x)","tanh(x)","asinh(x)","acosh(x+1)","atanh(x)"});
 		rpTest2(new String[]{"x=0.5","sqrt(x)","ln(x)","log(x)","exp(x)","abs(x)"});
-		rpTest2(new String[]{"x=0.5","sec(x)","cosec(x)","cot(x)"});
+		rpTest2(new String[]{"x=0.5","sec(x)","cosec(x)","cot(x)"},1E-9);
 		rpTest2(new String[]{"x=3","y=4","atan2(y,x)","if(x>y,1,2)","if(x<y,1,2)"} );
 	}
 	

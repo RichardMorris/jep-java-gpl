@@ -2,6 +2,10 @@
  * Created on 07-Jul-2003
  */
 package org.lsmp.djep.vectorJep.values;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+
 import org.lsmp.djep.vectorJep.*;
 
 //import JSci.maths.DoubleMatrix;
@@ -16,7 +20,7 @@ import org.lsmp.djep.vectorJep.*;
  * @version 2.3.1.1 Bug with non square matrices fixed.
  * @since 2.3.2 Added equals method.
  */
-public class Matrix implements MatrixValueI 
+public class Matrix implements MatrixValueI, Serializable 
 {
 	public MatrixValueI copy() {
 		Matrix tmp = new Matrix(this.rows,this.cols);
@@ -24,10 +28,10 @@ public class Matrix implements MatrixValueI
 		return tmp;
 	}
 	// want package access to simplify addition of matrices
-	int rows=0;
-	int cols=0;
+	transient int rows=0;
+	transient int cols=0;
 	Object data[][] = null;
-	Dimensions dims;
+	transient Dimensions dims;
 	
 	private Matrix() {}
 	/** Construct a matrix with given rows and cols. */
@@ -101,16 +105,31 @@ public class Matrix implements MatrixValueI
 		int j = n % cols;
 		data[i][j] = value;
 	}
+	/** Set the (i,j)-th element of the matrix. 
+	 * 
+	 * @param i the row number, starts at 0
+	 * @param j the col number, starts at 0
+	 * @param value
+	 */
 	public void setEle(int i,int j,Object value) 
 	{
 		data[i][j] = value;
 	}
+	/** Gets the n-th element of the array.
+	 * Elements are ordered (0,0),(0,1),...(1,0),(1,1),...
+	 * @param n 
+	 */
 	public Object getEle(int n)
 	{
 		int i = n / cols;
 		int j = n % cols;
 		return data[i][j];
 	}
+	/** Gets the (i,j)-th element of the matrix. 
+	 * 
+	 * @param i the row number, starts at 0
+	 * @param j the col number, starts at 0
+	 */
 	public Object getEle(int i,int j) 
 	{
 		return data[i][j];
@@ -123,7 +142,7 @@ public class Matrix implements MatrixValueI
 	/** sets the elements to those of the arguments. */
 	public void setEles(MatrixValueI val)
 	{
-		if(!dims.equals(val.getDim())) return;
+		if(!dims.equalsDim(val.getDim())) return;
 		for(int i=0;i<rows;++i)
 			System.arraycopy(((Matrix) val).data[i],0,data[i],0,cols);
 	}
@@ -142,7 +161,7 @@ public class Matrix implements MatrixValueI
 	public boolean equals(Object obj) {
 		if(!(obj instanceof Matrix)) return false;
 		Matrix mat = (Matrix) obj;
-		if(!mat.getDim().equals(getDim())) return false;
+		if(!mat.getDim().equalsDim(getDim())) return false;
 		for(int i=0;i<rows;++i)
 			for(int j=0;j<cols;++j)
 				if(!data[i][j].equals(mat.data[i][j])) return false;
@@ -165,5 +184,13 @@ public class Matrix implements MatrixValueI
 		return result;
 	}
 	
+	private void readObject(ObjectInputStream s) throws InvalidObjectException {
+		rows  = data.length;
+		cols = data[0].length;
+		for(int i=0;i<rows;++i)
+			if(data[i].length != cols)
+				throw new InvalidObjectException("Rows of different lengths");
+		this.dims = Dimensions.valueOf(rows, cols);
+	}
 
 }

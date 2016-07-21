@@ -6,7 +6,6 @@ package org.lsmp.djep.djep;
 import org.lsmp.djep.djep.diffRules.*;
 import org.lsmp.djep.xjep.*;
 import org.nfunk.jep.*;
-import org.nfunk.jep.function.*;
 import java.util.Hashtable;
 import java.util.Enumeration;
 import java.io.PrintStream;
@@ -37,9 +36,8 @@ import java.io.PrintStream;
  */
 public class DifferentiationVisitor extends DeepCopyVisitor
 {
-	private static final boolean DEBUG = false; 
 	private DJep localDJep;
-	private DJep globalDJep;
+	private final DJep globalDJep;
 	private NodeFactory nf;
 	private TreeUtils tu;
 //	private OperatorSet opSet;
@@ -48,9 +46,8 @@ public class DifferentiationVisitor extends DeepCopyVisitor
    */
   public DifferentiationVisitor(DJep jep)
   {
+	super(jep);
 	this.globalDJep = jep;
-	
-
   }
       
   /** The set of all differentiation rules indexed by name of function. */ 
@@ -59,10 +56,9 @@ public class DifferentiationVisitor extends DeepCopyVisitor
   void addDiffRule(DiffRulesI rule)
   {
 	diffRules.put(rule.getName(),rule);
-	if(DEBUG) System.out.println("Adding rule for "+rule.getName());
   }
   /** finds the rule for function with given name. */
-  DiffRulesI getDiffRule(String name)
+  public DiffRulesI getDiffRule(String name)
   {
 	return (DiffRulesI) diffRules.get(name);
   }
@@ -73,33 +69,37 @@ public class DifferentiationVisitor extends DeepCopyVisitor
   public void printDiffRules() { printDiffRules(System.out); }
   
   /**
-   * Prints all the differentiation rules for all functions on specified stream.
-   */
-  public void printDiffRules(PrintStream out)
-  {
+     * Prints all the differentiation rules for all functions on specified
+     * stream.
+     */
+    public void printDiffRules(PrintStream out) {
 	out.println("Standard Functions and their derivatives");
-	for(Enumeration en = globalDJep.getFunctionTable().keys(); en.hasMoreElements();)
-	{
-		String key = (String) en.nextElement();
-		PostfixMathCommandI value = globalDJep.getFunctionTable().get(key);
-		DiffRulesI rule = (DiffRulesI) diffRules.get(key);
-		if(rule==null)
-			out.print(key+" No diff rules specified ("+value.getNumberOfParameters()+" arguments).");
-		else
-			out.print(rule.toString());
-		out.println();
+	for (Enumeration en = globalDJep.getFunctionTable().keys(); en
+		.hasMoreElements();) {
+	    String key = (String) en.nextElement();
+	    //PostfixMathCommandI value = globalDJep.getFunctionTable().get(key);
+	    DiffRulesI rule = (DiffRulesI) diffRules.get(key);
+	    if (rule != null)
+		out.println(rule.toString());
 	}
-	for(Enumeration en = diffRules.keys(); en.hasMoreElements();)
-		{
-			String key = (String) en.nextElement();
-			DiffRulesI rule = (DiffRulesI) diffRules.get(key);
-			if(!globalDJep.getFunctionTable().containsKey(key))
-			{
-				out.print(rule.toString());
-				out.println("\tnot in JEP function list");
-			}
-		}
+	for (Enumeration en = diffRules.keys(); en.hasMoreElements();) {
+	    String key = (String) en.nextElement();
+	    DiffRulesI rule = (DiffRulesI) diffRules.get(key);
+	    if (!globalDJep.getFunctionTable().containsKey(key)) {
+		out.println(rule.toString());
+		// out.println("\tnot in JEP function list");
+	    }
 	}
+	out.println("No differentation rule specified for:");
+	for (Enumeration en = globalDJep.getFunctionTable().keys(); en
+		.hasMoreElements();) {
+	    String key = (String) en.nextElement();
+	    DiffRulesI rule = (DiffRulesI) diffRules.get(key);
+	    if (rule == null)
+		out.print(key + ",");
+	}
+	out.println();
+    }
 
 	/**
 	 * Differentiates an expression tree wrt a variable var.
@@ -176,31 +176,27 @@ public class DifferentiationVisitor extends DeepCopyVisitor
 	   if(var instanceof DVariable)
 	   {
 	   		DVariable difvar = (DVariable) var;
+	   		
 	   		if(varName.equals(var.getName()))
 	   			return nf.buildConstantNode(tu.getONE());
-		
-	   		else if(isConstantVar(var))
+	   		if(difvar.derivativeIsTrivallyZero())
 	   			return nf.buildConstantNode(tu.getZERO());
-			
 	   		deriv = difvar.findDerivative(varName,localDJep);
 	   }
 	   else if(var instanceof PartialDerivative)
 	   {
-   			if(isConstantVar(var))
-   				return nf.buildConstantNode(tu.getZERO());
-		
-			PartialDerivative pvar = (PartialDerivative) var;
-			DVariable dvar = pvar.getRoot();
-			deriv = dvar.findDerivative(pvar,varName,localDJep);
-				
+ 			PartialDerivative pvar = (PartialDerivative) var;
+	   		if(pvar.derivativeIsTrivallyZero())
+	   			return nf.buildConstantNode(tu.getZERO());
+			deriv = pvar.findDerivative(varName,localDJep);
 	   }
 	   else
 		   throw new ParseException("Encountered non differentiable variable");
-	   	
+	   
 	   Node eqn = deriv.getEquation();
-	   if(eqn instanceof ASTVarNode)
+	   if(eqn != null && eqn instanceof ASTVarNode)
 	   		return nf.buildVariableNode(((ASTVarNode) eqn).getVar());
-	   if(eqn instanceof ASTConstant)
+	   if(eqn != null && eqn instanceof ASTConstant)
 			return nf.buildConstantNode(((ASTConstant)eqn).getValue());
 
 	   return nf.buildVariableNode(deriv);

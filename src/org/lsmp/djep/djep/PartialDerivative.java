@@ -81,5 +81,10 @@ public class PartialDerivative extends XVariable  implements Observer {
 			setValidValue(false);
 		}
 	}
+	public boolean derivativeIsTrivallyZero() {
+		if(!this.hasEquation()) return true;
+		if(this.getEquation() instanceof ASTConstant) return true;
+		return false;
+	}
 
 }

@@ -49,7 +49,7 @@ public class MutiablePolynomial
 					return;		
 				}
 			}
-			else if(terms[i].equals(term)) {
+			else if(terms[i].equalsPNode(term)) {
 				terms[i] = terms[i].add(term);
 				return;
 			}

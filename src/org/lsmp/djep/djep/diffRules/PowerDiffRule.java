@@ -19,15 +19,15 @@ import org.nfunk.jep.*;
 
  public class PowerDiffRule implements DiffRulesI
  {
-	private String name;
-	private PowerDiffRule() {}
+	private final String name;
+
 	public PowerDiffRule(String inName)
 	{	  
 	  name = inName;
 	}
 
   public String toString()
-  {	  return name + "  \t\tdiff(f*g,x) -> diff(f,x)*g+f*diff(g,x)";  }
+  {	  return "diff(y^m,x) -> m * y^(m-1) * diff(y,x) + y^m * ln(m) * diff(m,x)";  }
   public String getName() { return name; }
   	
   public Node differentiate(ASTFunNode node,String var,Node [] children,Node [] dchildren,DJep djep) throws ParseException

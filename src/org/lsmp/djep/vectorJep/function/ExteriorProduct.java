@@ -34,7 +34,7 @@ public class ExteriorProduct extends PostfixMathCommand implements BinaryOperato
 
 	public Dimensions calcDim(Dimensions ldim,Dimensions rdim) throws ParseException
 	{
-		if(ldim.equals(Dimensions.THREE)&&rdim.equals(Dimensions.THREE))
+		if(ldim.equalsDim(Dimensions.THREE)&&rdim.equalsDim(Dimensions.THREE))
 			return Dimensions.THREE;
 		throw new ParseException("^ only implemented for three dimensions vectors");
 	}
@@ -78,8 +78,8 @@ public class ExteriorProduct extends PostfixMathCommand implements BinaryOperato
 	
 	public Object exteriorProduct(MVector lhs, MVector rhs) throws ParseException
 	{
-		if(!lhs.getDim().equals(Dimensions.THREE)
-		 || !lhs.getDim().equals(Dimensions.THREE) )
+		if(!lhs.getDim().equalsDim(Dimensions.THREE)
+		 || !lhs.getDim().equalsDim(Dimensions.THREE) )
 		 	throw new ParseException("Cross: Miss match in sizes ("+lhs.getDim()+","+rhs.getDim()+")");
 		MVector res = new MVector(3);
 		return calcValue(res,lhs,rhs);

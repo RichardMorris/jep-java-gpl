@@ -45,6 +45,50 @@ public class SubstitutionVisitor extends DoNothingVisitor {
 	}
 
 	/**
+	 * Substitutes into orig the equation given by sub 
+	 * @param orig the equation to substitute into
+	 * @param sub and equation of the form x=....
+	 * @param xj
+	 * @return orig after substitution
+	 * @throws ParseException if sub is of the wrong form
+	 */
+	public Node substitute(Node orig,Node sub,XJep xj) throws ParseException
+	{
+		if(sub.jjtGetNumChildren()!=2
+				|| !(sub instanceof ASTFunNode)
+				|| ((ASTFunNode) sub).getOperator() !=
+					xj.getOperatorSet().getAssign()
+				) 
+			throw new ParseException("substitute: substitution equation should be of the form x=....");
+		Node var = sub.jjtGetChild(0);
+		if(!(var instanceof ASTVarNode) )
+			throw new ParseException("substitute: substitution equation should be of the form x=....");
+		return this.substitute(orig, ((ASTVarNode)var).getName(), sub.jjtGetChild(1), xj);
+	}
+
+	public Node substitute(Node orig,Node[] subs,XJep xj) throws ParseException
+	{
+		String[] names = new String[subs.length]; 
+		Node[] reps = new Node[subs.length];
+		for(int i=0;i<subs.length;++i)
+		{
+			Node sub = subs[i];
+			if(sub.jjtGetNumChildren()!=2
+				|| !(sub instanceof ASTFunNode)
+				|| ((ASTFunNode) sub).getOperator() !=
+					xj.getOperatorSet().getAssign()
+				) 
+			throw new ParseException("substitute: substitution equation should be of the form x=....");
+			Node var = sub.jjtGetChild(0);
+			if(!(var instanceof ASTVarNode) )
+				throw new ParseException("substitute: substitution equation should be of the form x=....");
+			names[i] = ((ASTVarNode)var).getName();
+			reps[i] =  sub.jjtGetChild(1);
+		}
+		return this.substitute(orig, names, reps, xj);
+	}
+
+	/**
 	 * Substitutes all occurrences of a set of variable var with a set of replacements.
 	 * Does not do a DeepCopy.
 	 * @param orig	the expression we wish to perform the substitution on
@@ -61,6 +105,24 @@ public class SubstitutionVisitor extends DoNothingVisitor {
 		Node res = (Node) orig.jjtAccept(this,null);
 		return res;
 	}
+	
+	/**
+	 * Substitute a set of names with a set of values.
+	 * @param orig
+	 * @param names
+	 * @param values
+	 * @param xj
+	 * @return node with the substitution performed
+	 * @throws ParseException
+	 */
+	public Node substitute(Node orig,String names[],Object values[],XJep xj) throws ParseException
+	{
+		Node[] replacements = new Node[values.length];
+		for(int i=0;i<values.length;++i)
+			replacements[i] = xj.getNodeFactory().buildConstantNode(values[i]);
+		return substitute(orig,names,replacements,xj);
+	}
+	
 
 	public Object visit(ASTVarNode node, Object data) throws ParseException
 	{
@@ -69,9 +131,10 @@ public class SubstitutionVisitor extends DoNothingVisitor {
 			if(names[i].equals(node.getName()))
 				return xjep.deepCopy(replacements[i]);
 		}
-		if(node.getVar().isConstant())
-			return xjep.getNodeFactory().buildVariableNode(xjep.getSymbolTable().getVar(node.getName()));
+		return node;
+		//if(node.getVar().isConstant())
+		//	return xjep.getNodeFactory().buildVariableNode(xjep.getSymbolTable().getVar(node.getName()));
 			
-		throw new ParseException("No substitution specified for variable "+node.getName());
+		//throw new ParseException("No substitution specified for variable "+node.getName());
 	}
 }

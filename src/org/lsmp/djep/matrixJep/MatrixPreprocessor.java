@@ -15,11 +15,11 @@ import org.lsmp.djep.vectorJep.function.*;
  * <ul>
  * <li>Sets the dimension of each node.
  * <li>For assignment equations it adds an entry in the VariableTable
- * <li>For diff opperator it calculates the derivative.
- * <li>For the List opperator it finds the dimensions and
+ * <li>For diff operator it calculates the derivative.
+ * <li>For the List operator it finds the dimensions and
  * returns a ASTTensor.
- * <li>For the Hat opperator it finds the dimension and returns
- * a Power or Wedge opperator.
+ * <li>For the Hat operator it finds the dimension and returns
+ * a Power or Wedge operator.
  * </ul>
  * The visitor will return a new Tree.
  * 

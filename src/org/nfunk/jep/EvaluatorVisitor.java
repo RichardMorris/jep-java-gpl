@@ -75,11 +75,6 @@ public class EvaluatorVisitor implements ParserVisitor, EvaluatorI {
 	 * tree is specified with its top node. The algorithm uses a stack
 	 * for evaluation.
 	 * <p>
-	 * The <code>errorList_in</code> parameter is used to
-	 * add error information that may occur during the evaluation. It is not
-	 * required, and may be set to <code>null</code> if no error information is
-	 * needed.
-	 * <p>
 	 * The symTab parameter can be null, if no variables are expected in the
 	 * expression. If a variable is found, an error is added to the error list.
 	 * <p>
@@ -248,17 +243,19 @@ public class EvaluatorVisitor implements ParserVisitor, EvaluatorI {
 
 		// new code
 
+		// try to get the variable object
 		Variable var = node.getVar();
 		if (var == null) {
 			String message = "Could not evaluate " + node.getName() + ": ";
-			throw new ParseException(message + " variable not set");
+			throw new ParseException(message + "the variable was not found in the symbol table");
 		}
 
+		// get the variable value
 		Object temp = var.getValue();
 
 		if (trapNullValues && temp == null) {
 			String message = "Could not evaluate " + node.getName() + ": ";
-			throw new ParseException(message + "the variable was not found in the symbol table");
+			throw new ParseException(message + "variable not set");
 		}
 		// all is fine
 		// push the value on the stack

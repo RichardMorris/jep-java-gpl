@@ -18,7 +18,7 @@ import java.util.*;
  * There is a flag to indicate
  * whether it is a constant or not (constants cannot have their value changed).
  * There is also a flag to indicate whether the value of the
- * variable is valid, if the variable is initialised without a value
+ * variable is valid, if the variable is initialized without a value
  * then its value is said to be invalid.
  * <p>
  * @author Rich Morris
@@ -70,7 +70,9 @@ public class Variable extends Observable {
 	 * to indicate to anyone interested that the value has been changed.
 	 * Note subclasses should override setValueRaw rather than this
 	 * method so they do not need to handle the Observable methods.
-	 *  
+	 * <p>
+	 * This method sets the validValue flag to true.
+	 * 
 	 * @return false if tried to change a constant value.
 	 * @since 2.3.0 beta 2 added Observable
 	 */
@@ -85,6 +87,9 @@ public class Variable extends Observable {
 	 * In general subclasses should override this method rather than
 	 * setValue. This is because setValue notifies any observers
 	 * and then calls this method.
+	 * <p>
+	 * This method sets the validValue flag to true.
+	 * 
 	 * @param object
 	 * @return false if tried to change a constant value.
 	 * @since 2.3.0 beta 2

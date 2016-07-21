@@ -179,4 +179,11 @@ public class VectorJepTest extends JepTest {
 		valueTest("trans(m)","[[(1.0, 1.0),(1.0, -1.0)],[(-1.0, 1.0),(-1.0, -1.0)]]");
 		valueTest("det(m)","(0.0, -4.0)");
 	}
+	
+	public void testAverage() throws Exception {
+		valueTest("v=[1,2,3]","[1.0,2.0,3.0]");
+		valueTest("s=vsum(v)","6.0");
+		valueTest("l=len(v)","3");
+		valueTest("a=s/l","2.0");
+	}
 }

@@ -59,7 +59,7 @@ public class FreeGroup extends Group implements RingI {
 	}
 	public boolean equals(Number a,Number b)
 	{
-		return ((FreeGroupElement) a).equals((FreeGroupElement) b);
+		return ((FreeGroupElement) a).equalsPoly((FreeGroupElement) b);
 	}
 
 	public Number valueOf(String s)	{
@@ -71,6 +71,10 @@ public class FreeGroup extends Group implements RingI {
 		return new FreeGroupElement(this, coeffs);
 	}
 
+	public Number valueOf(Number num) {
+		Number coeffs[] = new Number[]{baseRing.valueOf(num)};
+		return valueOf(coeffs);
+	}
 	public Number getZERO() { return zeroPoly; }
 	public Number getONE() { return unitPoly; }
 	public Number getTPoly() { return tPoly; }
@@ -139,7 +143,23 @@ public class FreeGroup extends Group implements RingI {
 
 	/** Whether the given polynomial is constant. */
 	public boolean isConstantPoly(Number poly) {
-		return ((FreeGroupElement) poly).isConstantPoly();
+		if(poly instanceof FreeGroupElement)
+			return ((FreeGroupElement) poly).isConstantPoly();
+		else
+			return true;
 	}
 
+	public FreeGroupElement getVariableElement(String name) {
+		if(name.equals(this.symbol))
+			return this.tPoly;
+		FreeGroupElement ele = null;
+		if(baseRing instanceof FreeGroup) {
+			ele = ((FreeGroup)this.baseRing).getVariableElement(name);
+			if(ele!=null)
+				return (FreeGroupElement) valueOf(new Number[]{ele});
+		}
+		return null;
+	}
+
+	
 }

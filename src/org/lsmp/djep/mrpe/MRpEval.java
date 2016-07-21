@@ -2,14 +2,39 @@
  * Created on 14-Apr-2004
  */
 package org.lsmp.djep.mrpe;
-import org.nfunk.jep.*;
-import org.nfunk.jep.function.*;
-import org.lsmp.djep.matrixJep.nodeTypes.*;
-import org.lsmp.djep.matrixJep.*;
-import org.lsmp.djep.vectorJep.*;
-import org.lsmp.djep.vectorJep.values.*;
-import org.lsmp.djep.xjep.*;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Observable;
+import java.util.Observer;
+import java.util.Stack;
+
+import org.lsmp.djep.matrixJep.MatrixJep;
+import org.lsmp.djep.matrixJep.MatrixOperatorSet;
+import org.lsmp.djep.matrixJep.MatrixVariable;
+import org.lsmp.djep.matrixJep.MatrixVariableI;
+import org.lsmp.djep.matrixJep.nodeTypes.ASTMFunNode;
+import org.lsmp.djep.matrixJep.nodeTypes.ASTMVarNode;
+import org.lsmp.djep.matrixJep.nodeTypes.MatrixNodeI;
+import org.lsmp.djep.rpe.RealBinaryFunction;
+import org.lsmp.djep.rpe.RealNaryFunction;
+import org.lsmp.djep.rpe.RealNullaryFunction;
+import org.lsmp.djep.rpe.RealUnaryFunction;
+import org.lsmp.djep.vectorJep.Dimensions;
+import org.lsmp.djep.vectorJep.values.MVector;
+import org.lsmp.djep.vectorJep.values.Matrix;
+import org.lsmp.djep.vectorJep.values.MatrixValueI;
+import org.lsmp.djep.vectorJep.values.Scaler;
+import org.lsmp.djep.xjep.XOperator;
+import org.nfunk.jep.ASTConstant;
+import org.nfunk.jep.ASTFunNode;
+import org.nfunk.jep.ASTStart;
+import org.nfunk.jep.ASTVarNode;
+import org.nfunk.jep.Node;
+import org.nfunk.jep.ParseException;
+import org.nfunk.jep.ParserVisitor;
+import org.nfunk.jep.SimpleNode;
+import org.nfunk.jep.Variable;
+import org.nfunk.jep.function.PostfixMathCommandI;
 /**
  * A fast evaluation algorithm for equations using Vectors and Matrix over the Doubles.
  * This is based around reverse polish notation (hence the name M Rp Eval)
@@ -135,6 +160,8 @@ public final class MRpEval implements ParserVisitor {
 	/** compile an expression of the type var = node. */
 	public final MRpCommandList compile(MatrixVariableI var,Node node) throws ParseException
 	{
+	    resetStores();
+
 		MRpCommandList list = compile(node);
 		ObjStore store = getStoreByDim(var.getDimensions());
 		short vRef = (short) store.addVar(var);
@@ -148,7 +175,8 @@ public final class MRpEval implements ParserVisitor {
 	 */
 	public final MRpCommandList compile(Node node) throws ParseException
 	{
-		curCommandList = new MRpCommandList();
+        resetStores();
+	    curCommandList = new MRpCommandList();
 
 		node.jjtAccept(this,null);
 
@@ -206,21 +234,22 @@ public final class MRpEval implements ParserVisitor {
 	static final short ASSIGN = 20;
 	static final short VLIST = 21;
 	static final short MLIST = 22;
-	static final short FUN = 23;
-	static final short UMINUS = 24;
+	static final short UMINUS = 23;
+	static final short POWN = 24;
+	static final short RECIP = 25;
 
-	static final short FUN2 = 25;
-	static final short FUN3 = 26;
-	static final short FUN4 = 27;
-	static final short POWN = 28;
-	static final short RECIP = 29;
+	static final short FUN0 = 26;
+	static final short FUN1 = 27;
+	static final short FUN2 = 28;
+	static final short FUN3 = 29;
+	static final short FUN4 = 30;
 
 	/** Constant type scalers - used in the aux field of RpCommand */
 	private static final short SCALER = 0; // Scalers
 	private static final short V2 = 2; // 2D vect
 	private static final short V3 = 3;
 	private static final short V4 = 4;
-	private static final short Vn = 5; // n D vec
+	private static final short VN = 5; // n D vec
 	private static final short M22 = 6; // 2 by 2 mat
 	private static final short M23 = 7; // 2 by 3 mat
 	private static final short M24 = 8;
@@ -230,8 +259,8 @@ public final class MRpEval implements ParserVisitor {
 	private static final short M42 = 12;
 	private static final short M43 = 13;
 	private static final short M44 = 14;
-	private static final short Mnn = 15; // other mats
-	private static final short Dtens = 16; // tensors
+	private static final short MNN = 15; // other mats
+	private static final short TENSOR = 16; // tensors
 	
 	/** Standard functions **/
 	
@@ -263,6 +292,7 @@ public final class MRpEval implements ParserVisitor {
 	// 3 argument functions
 	private static final short IF = 22;
 
+	private static final short CUSTOM = 23;
 
 	/** Hashtable for function name lookup **/
 	
@@ -293,6 +323,25 @@ public final class MRpEval implements ParserVisitor {
 		functionHash.put("atan2",new Short(ATAN2));
 		functionHash.put("if",new Short(IF));
 	}
+	
+	static PostfixMathCommandI[] customFunctionCommands=new PostfixMathCommandI[0];
+	static short nCustom=0;
+	static synchronized Short getUserFunction(String name,PostfixMathCommandI pfmc) {
+		Short val = (Short) functionHash.get(name);
+		if(val!=null) return val;
+		
+		val = new Short((short) (CUSTOM + nCustom));
+		functionHash.put(name,val);
+		PostfixMathCommandI[] oldCustom = customFunctionCommands;
+		customFunctionCommands = new PostfixMathCommandI[nCustom+1];
+		for(int k=0;k<oldCustom.length;++k)
+			customFunctionCommands[k] = oldCustom[k];
+		customFunctionCommands[nCustom] = pfmc;
+		++nCustom;
+		//throw new ParseException("RpeEval: Sorry unsupported operator/function: "+ node.getName());
+		return val;
+	}
+
 	/** Contains the constant values **/
 	private double constVals[] = new double[0];
 	/**
@@ -348,7 +397,14 @@ public final class MRpEval implements ParserVisitor {
 	{
 		scalerStore.setVarValue(ref,val);
 	}
-	
+	public final void setVarValue(int ref,double[] vals) {
+		switch(vals.length) {
+        case 1: scalerStore.setVarValue(ref, vals[0]); break;
+		case 2: v2Store.setVarValue(ref, vals); break;
+		case 3: v3Store.setVarValue(ref, vals); break;
+		case 4: v4Store.setVarValue(ref, vals); break;
+		}
+	}
 	private final static class ScalerObj extends MRpRes {
 		double a;
 		private ScalerObj(double val) {a =val; }
@@ -365,7 +421,7 @@ public final class MRpEval implements ParserVisitor {
 	
 	private abstract static class VecObj extends MRpRes {
 		public final void copyToVecMat(MatrixValueI res)  throws ParseException {
-			if(! getDims().equals(res.getDim())) throw new ParseException("CopyToVecMat: dimension of argument "+res.getDim()+" is not equal to dimension of object "+getDims());
+			if(! getDims().equalsDim(res.getDim())) throw new ParseException("CopyToVecMat: dimension of argument "+res.getDim()+" is not equal to dimension of object "+getDims());
 			copyToVec((MVector) res);
 		}
 		public abstract void copyToVec(MVector res);
@@ -379,7 +435,7 @@ public final class MRpEval implements ParserVisitor {
 	
 	private abstract static class MatObj extends MRpRes  {
 		public final void copyToVecMat(MatrixValueI res)  throws ParseException {
-			if(! getDims().equals(res.getDim())) throw new ParseException("CopyToVecMat: dimension of argument "+res.getDim()+" is not equal to dimension of object "+getDims());
+			if(! getDims().equalsDim(res.getDim())) throw new ParseException("CopyToVecMat: dimension of argument "+res.getDim()+" is not equal to dimension of object "+getDims());
 			copyToMat((Matrix) res);
 		}
 		public abstract void copyToMat(Matrix res);
@@ -407,10 +463,12 @@ public final class MRpEval implements ParserVisitor {
 		int sp=0;
 		/** Maximum size of stack */
 		int stackMax=0;
+        /** Maximum size of heep */
+        int heapMax=0;
 		/** The heap pointer */ 
 		int hp=0;
 		final void incStack()	{sp++; if(sp > stackMax) stackMax = sp;	}
-		final void incHeap()	{hp++;}
+		final void incHeap()	{hp++; if(hp > heapMax) heapMax = hp; }
 		final void decStack()	throws ParseException {--sp; if(sp <0 ) throw new ParseException("RPEval: stack error");}
 		/** call this to reset pointers as first step in evaluation */
 		final void reset() { sp = 0; hp = 0; }
@@ -665,7 +723,7 @@ public final class MRpEval implements ParserVisitor {
 		{
 			if(var.hasValidValue())
 			{
-				MVector val = (MVector) ((MatrixVariable) var).getMValue();
+				MVector val = (MVector) ((MatrixVariableI) var).getMValue();
 				copyVar(i,val);
 			}
 		}
@@ -690,16 +748,24 @@ public final class MRpEval implements ParserVisitor {
 			val.setEle(1,new Double(b));
 		}
 		public double[] toArrayVec() { return new double[]{a,b}; }
+		public void fromArray(double[] vals) {
+			a = vals[0]; 
+			b = vals[1];
+		}
 	}
 	private final class V2Store extends VecStore {
 		V2Obj stack[];
 		V2Obj heap[];
 		V2Obj vars[]= new V2Obj[0];
 		final void alloc() { 
-			heap = new V2Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new V2Obj();
+			heap = new V2Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new V2Obj();
 			stack = new V2Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new V2Obj();
+		}
+
+		final void setVarValue(int ref, double[] vals) {
+			vars[ref].fromArray(vals);
 		}
 
 		final void expandVarArray(MatrixVariableI var)
@@ -794,6 +860,11 @@ public final class MRpEval implements ParserVisitor {
 			b = ((Double) val.getEle(1)).doubleValue();
 			c = ((Double) val.getEle(2)).doubleValue();
 		}
+		public void fromArray(double[] vals) {
+			a = vals[0]; 
+			b = vals[1];
+			c = vals[2];
+		}
 		public void copyToVec(MVector val){
 			val.setEle(0,new Double(a));
 			val.setEle(1,new Double(b));
@@ -806,8 +877,8 @@ public final class MRpEval implements ParserVisitor {
 		V3Obj heap[];
 		V3Obj vars[]= new V3Obj[0];
 		final void alloc() { 
-			heap = new V3Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new V3Obj();
+	        heap = new V3Obj[heapMax]; 
+	        for(int i=0;i<heapMax;++i) heap[i]=new V3Obj();
 			stack = new V3Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new V3Obj();
 		}
@@ -819,6 +890,9 @@ public final class MRpEval implements ParserVisitor {
 			vars = newvars;
 		}
 		final void copyVar(int i,MVector vec) { vars[i].fromVec(vec); }
+		final void setVarValue(int ref, double[] vals) {
+			vars[ref].fromArray(vals);
+		}
 		final void add(){
 			V3Obj r = stack[--sp];
 			V3Obj l = stack[--sp];
@@ -902,6 +976,12 @@ public final class MRpEval implements ParserVisitor {
 			c = ((Double) val.getEle(2)).doubleValue();
 			d = ((Double) val.getEle(3)).doubleValue();
 		}
+		public void fromArray(double[] vals) {
+			a = vals[0]; 
+			b = vals[1];
+			c = vals[2];
+			d = vals[3];
+		}
 		public void copyToVec(MVector val){
 			val.setEle(0,new Double(a));
 			val.setEle(1,new Double(b));
@@ -915,8 +995,8 @@ public final class MRpEval implements ParserVisitor {
 		V4Obj heap[];
 		V4Obj vars[]= new V4Obj[0];
 		final void alloc() { 
-			heap = new V4Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new V4Obj();
+			heap = new V4Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new V4Obj();
 			stack = new V4Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new V4Obj();
 		}
@@ -928,6 +1008,9 @@ public final class MRpEval implements ParserVisitor {
 			vars = newvars;
 		}
 		final void copyVar(int i,MVector vec) { vars[i].fromVec(vec); }
+		final void setVarValue(int ref, double[] vals) {
+			vars[ref].fromArray(vals);
+		}
 		final void add(){
 			V4Obj r = stack[--sp];
 			V4Obj l = stack[--sp];
@@ -1176,8 +1259,8 @@ public final class MRpEval implements ParserVisitor {
 		M22Obj heap[];
 		M22Obj vars[]= new M22Obj[0];
 		final void alloc() { 
-			heap = new M22Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new M22Obj();
+			heap = new M22Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new M22Obj();
 			stack = new M22Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new M22Obj();
 		}
@@ -1216,6 +1299,15 @@ public final class MRpEval implements ParserVisitor {
 			res.b = -r.b;
 			res.c = -r.c;
 			res.d = -r.d;
+			stack[sp++]=res;	
+		}
+		final void trans(){
+			M22Obj r = stack[--sp];
+			M22Obj res = heap[hp++];
+			res.a = r.a;
+			res.b = r.c;
+			res.c = r.b;
+			res.d = r.d;
 			stack[sp++]=res;	
 		}
 		final void mulS()
@@ -1301,8 +1393,8 @@ public final class MRpEval implements ParserVisitor {
 		M23Obj heap[];
 		M23Obj vars[]= new M23Obj[0];
 		final void alloc() { 
-			heap = new M23Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new M23Obj();
+			heap = new M23Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new M23Obj();
 			stack = new M23Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new M23Obj();
 			}
@@ -1446,8 +1538,8 @@ public final class MRpEval implements ParserVisitor {
 		M24Obj heap[];
 		M24Obj vars[]= new M24Obj[0];
 		final void alloc() { 
-			heap = new M24Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new M24Obj();
+			heap = new M24Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new M24Obj();
 			stack = new M24Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new M24Obj();
 			}
@@ -1605,8 +1697,8 @@ public final class MRpEval implements ParserVisitor {
 		M32Obj heap[];
 		M32Obj vars[]= new M32Obj[0];
 		final void alloc() { 
-			heap = new M32Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new M32Obj();
+			heap = new M32Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new M32Obj();
 			stack = new M32Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new M32Obj();
 		}
@@ -1752,8 +1844,8 @@ public final class MRpEval implements ParserVisitor {
 		M33Obj heap[];
 		M33Obj vars[]= new M33Obj[0];
 		final void alloc() { 
-			heap = new M33Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new M33Obj();
+			heap = new M33Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new M33Obj();
 			stack = new M33Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new M33Obj();
 			}
@@ -1930,8 +2022,8 @@ public final class MRpEval implements ParserVisitor {
 		M34Obj heap[];
 		M34Obj vars[]= new M34Obj[0];
 		final void alloc() { 
-			heap = new M34Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new M34Obj();
+			heap = new M34Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new M34Obj();
 			stack = new M34Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new M34Obj();
 			}
@@ -2124,8 +2216,8 @@ public final class MRpEval implements ParserVisitor {
 		M42Obj heap[];
 		M42Obj vars[]= new M42Obj[0];
 		final void alloc() { 
-			heap = new M42Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new M42Obj();
+			heap = new M42Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new M42Obj();
 			stack = new M42Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new M42Obj();
 			}
@@ -2298,8 +2390,8 @@ public final class MRpEval implements ParserVisitor {
 		M43Obj heap[];
 		M43Obj vars[]= new M43Obj[0];
 		final void alloc() { 
-			heap = new M43Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new M43Obj();
+			heap = new M43Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new M43Obj();
 			stack = new M43Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new M43Obj();
 			}
@@ -2510,8 +2602,8 @@ public final class MRpEval implements ParserVisitor {
 		M44Obj heap[];
 		M44Obj vars[]= new M44Obj[0];
 		final void alloc() { 
-			heap = new M44Obj[hp]; 
-			for(int i=0;i<hp;++i) heap[i]=new M44Obj();
+			heap = new M44Obj[heapMax]; 
+			for(int i=0;i<heapMax;++i) heap[i]=new M44Obj();
 			stack = new M44Obj[stackMax];
 			for(int i=0;i<stackMax;++i) stack[i]=new M44Obj();
 			M44Obj newvars[] = new M44Obj[varRefs.size()];
@@ -2729,7 +2821,7 @@ public final class MRpEval implements ParserVisitor {
 			case 2: return V2;
 			case 3: return V3;
 			case 4: return V4;
-			default: return Vn;
+			default: return VN;
 			}
 		}
 		else if(dims.is2D())
@@ -2761,9 +2853,9 @@ public final class MRpEval implements ParserVisitor {
 				}
 				break;
 			}
-			return Mnn;
+			return MNN;
 		}
-		return Dtens;
+		return TENSOR;
 	}
 	
 	private final ObjStore getStoreByDim(Dimensions dims) throws ParseException
@@ -2774,7 +2866,7 @@ public final class MRpEval implements ParserVisitor {
 			case V2:  return v2Store;
 			case V3:  return v3Store;
 			case V4:  return v4Store;
-			case Vn:  return vnStore;
+			case VN:  return vnStore;
 			case M22: return m22Store;
 			case M23: return m23Store;
 			case M24: return m24Store;
@@ -2784,7 +2876,7 @@ public final class MRpEval implements ParserVisitor {
 			case M42: return m42Store;
 			case M43: return m43Store;
 			case M44: return m44Store;
-			case Mnn: return mnnStore;
+			case MNN: return mnnStore;
 			default:
 			throw new ParseException("Sorry, can only handle scaler, 2, 3 and 4 dimensional vectors and matrices");
 		}
@@ -3026,7 +3118,7 @@ public final class MRpEval implements ParserVisitor {
 
 			if(op == opSet.getAdd())
 			{
-				if(!dims.equals(ldims) || !dims.equals(rdims))
+				if(!dims.equalsDim(ldims) || !dims.equalsDim(rdims))
 					throw new ParseException("RpeEval: dims for add must be equal");
 				curCommandList.addCommand(ADD,getDimType(dims));
 				decByDim(dims);
@@ -3035,7 +3127,7 @@ public final class MRpEval implements ParserVisitor {
 			}
 			else if(op == opSet.getSubtract())
 			{
-				if(!dims.equals(ldims) || !dims.equals(rdims))
+				if(!dims.equalsDim(ldims) || !dims.equalsDim(rdims))
 					throw new ParseException("RpeEval: dims for add must be equal");
 				curCommandList.addCommand(SUB,getDimType(dims));
 				decByDim(dims);
@@ -3063,9 +3155,9 @@ public final class MRpEval implements ParserVisitor {
 				incheapByDim(dims);
 				for(int j=0;j<dims.numEles();++j) scalerStore.decStack();
 				int d = getDimType(dims);
-				if(d == Vn) 
+				if(d == VN) 
 					curCommandList.addCommand(VLIST,(short) dims.getFirstDim());
-				else if(d == Mnn) 
+				else if(d == MNN) 
 					curCommandList.addCommand(MLIST,(short) dims.getFirstDim(),(short) dims.getLastDim());
 				else 
 					curCommandList.addCommand(LIST,getDimType(dims)); 
@@ -3080,13 +3172,13 @@ public final class MRpEval implements ParserVisitor {
 			}
 			else if(op == opSet.getCross())
 			{
-				if(ldims.equals(Dimensions.THREE) && rdims.equals(Dimensions.THREE))
+				if(ldims.equalsDim(Dimensions.THREE) && rdims.equalsDim(Dimensions.THREE))
 				{
 					v3Store.decStack();
 					v3Store.incHeap();
 					curCommandList.addCommand(CROSS,V3); return null;
 				}
-				else if(ldims.equals(Dimensions.TWO) && rdims.equals(Dimensions.TWO))
+				else if(ldims.equalsDim(Dimensions.TWO) && rdims.equalsDim(Dimensions.TWO))
 				{
 					scalerStore.incStack();
 					decByDim(ldims);
@@ -3107,7 +3199,7 @@ public final class MRpEval implements ParserVisitor {
 			}
 			else if(op == opSet.getEQ())
 			{
-				if(!ldims.equals(rdims))throw new ParseException("Dimensions of operands for equals operator must be the same");
+				if(!ldims.equalsDim(rdims))throw new ParseException("Dimensions of operands for equals operator must be the same");
 				scalerStore.incStack();
 				decByDim(ldims);
 				decByDim(rdims);
@@ -3115,7 +3207,7 @@ public final class MRpEval implements ParserVisitor {
 			}
 			else if(op == opSet.getNE())
 			{
-				if(!ldims.equals(rdims))throw new ParseException("Dimensions of operands for not-equals operator must be the same");
+				if(!ldims.equalsDim(rdims))throw new ParseException("Dimensions of operands for not-equals operator must be the same");
 				scalerStore.incStack();
 				decByDim(ldims);
 				decByDim(rdims);
@@ -3178,7 +3270,7 @@ public final class MRpEval implements ParserVisitor {
 			}
 			else if(op == opSet.getDivide())
 			{
-				if(!rdims.is0D())throw new ParseException("RHS operands of / operator must be a Scaler");
+				//if(!rdims.is0D())throw new ParseException("RHS operands of / operator must be a Scaler");
 				decByDim(rdims);
 				decByDim(ldims);
 				incByDim(dims);
@@ -3188,7 +3280,7 @@ public final class MRpEval implements ParserVisitor {
 			}
 			else if(op == opSet.getMod())
 			{
-				if(!ldims.is0D() || !rdims.is0D())throw new ParseException("Dimensions of operands for || operator must both be one");
+				if(!ldims.is0D() || !rdims.is0D())throw new ParseException("Dimensions of operands for % operator must both be one");
 				scalerStore.incStack();
 				decByDim(ldims);
 				decByDim(rdims);
@@ -3196,7 +3288,7 @@ public final class MRpEval implements ParserVisitor {
 			}
 			else if(op == opSet.getPower())
 			{
-				if(!ldims.is0D() || !rdims.is0D())throw new ParseException("Dimensions of operands for || operator must both be one");
+				if(!ldims.is0D() || !rdims.is0D())throw new ParseException("Dimensions of operands for ^ operator must both be one");
 
 				Node lhs = node.jjtGetChild(0);
 				Node rhs = node.jjtGetChild(1);
@@ -3215,6 +3307,7 @@ public final class MRpEval implements ParserVisitor {
 						{
 							curCommandList.addCommand(POWN,(short) (-sval));
 							curCommandList.addCommand(RECIP,SCALER);
+							return null;
 						}
 					}
 				}
@@ -3224,55 +3317,78 @@ public final class MRpEval implements ParserVisitor {
 			}
 			throw new ParseException("RpeEval: Sorry unsupported operator/function: "+ mnode.getName());
 		}
+//		if(!mnode.getDim().is0D())
+//			throw new ParseException("RpeEval: Sorry, only functions with scalar results are supported");
+//		for(int k=0;k<nChild;++k)
+//			if(!((MatrixNodeI) node.jjtGetChild(k)).getDim().is0D())
+//				throw new ParseException("RpEval: Sorry only functions with scalar arguments are supported");
 		// other functions
-		Short val = (Short) functionHash.get(mnode.getName());
-		if(val == null)
-			throw new ParseException("RpeEval: Sorry unsupported operator/function: "+ mnode.getName());
-		if(mnode.getPFMC().getNumberOfParameters() == 1 && nChild == 1)
+		Short val = getUserFunction(node.getName(),node.getPFMC());
+
+		if(mnode.getPFMC().getNumberOfParameters() != -1 &&
+				mnode.getPFMC().getNumberOfParameters() != nChild) {
+			throw new ParseException("RpEval: miss match between expected number of arguments "+
+					mnode.getPFMC().getNumberOfParameters()+" and actual number of arguments "+nChild);
+		}
+		if(nChild == 0)
 		{
-			scalerStore.incStack();
-			decByDim(ldims);
-			curCommandList.addCommand(FUN,val.shortValue()); 
+			incByDim(mnode.getDim());
+			curCommandList.addCommand(FUN0,val.shortValue()); 
 			return null;
 		}
-		if(nChild == 1)
+		else if(nChild == 1)
 		{
-			scalerStore.incStack();
 			decByDim(ldims);
-			curCommandList.addCommand(FUN,val.shortValue()); 
+			incByDim(mnode.getDim());
+			curCommandList.addCommand(FUN1,val.shortValue()); 
 			return null;
 		}
 		else if(nChild == 2)
 		{
-			scalerStore.incStack();
 			decByDim(ldims);
 			decByDim(rdims);
-			curCommandList.addCommand(FUN2,val.shortValue()); 
+			incByDim(mnode.getDim());
+			if(ldims.is0D() && rdims.is0D() && mnode.getDim().is0D())
+			    curCommandList.addCommand(FUN2,val.shortValue());
+			else if(ldims.is1D() && ldims.getFirstDim() == 2
+	            && rdims.is1D() && rdims.getFirstDim() == 2
+	            && mnode.getDim().is1D() && mnode.getDim().getFirstDim() == 2 )
+			    curCommandList.addCommand(FUN2, val.shortValue(), V2);
+            else if(ldims.is1D() && ldims.getFirstDim() == 3
+                    && rdims.is1D() && rdims.getFirstDim() == 3
+                    && mnode.getDim().is1D() && mnode.getDim().getFirstDim() == 2 )
+                    curCommandList.addCommand(FUN2, val.shortValue(), V3);
+			    
 			return null;
 		}
 		else if(nChild == 3)
 		{
-			scalerStore.incStack();
 			decByDim(ldims);
-			decByDim(ldims);
-			decByDim(ldims);
-
+			decByDim(rdims);
+			decByDim(((MatrixNodeI) node.jjtGetChild(2)).getDim());
+			incByDim(mnode.getDim());
 			curCommandList.addCommand(FUN3,val.shortValue()); 
 			return null;
 		}
 		else if(nChild == 4)
 		{
-			scalerStore.incStack();
 			decByDim(ldims);
-			decByDim(ldims);
-			decByDim(ldims);
-			decByDim(ldims);
+			decByDim(rdims);
+			decByDim(((MatrixNodeI) node.jjtGetChild(2)).getDim());
+			decByDim(((MatrixNodeI) node.jjtGetChild(3)).getDim());
+			incByDim(mnode.getDim());
 			curCommandList.addCommand(FUN4,val.shortValue()); 
 			return null;
 		}
+		else
+		{
+			for(int k=0;k<nChild;++k)
+				decByDim(((MatrixNodeI) node.jjtGetChild(k)).getDim());
+			incByDim(mnode.getDim());
+			curCommandList.addCommand((short)(FUN0+nChild),val.shortValue()); 
+			return null;
+		}
 
-		
-		throw new ParseException("RpeEval: Sorry unsupported operator/function: "+ mnode.getName());
 	}
 
 	/***************************** evaluation *****************************/
@@ -3282,24 +3398,11 @@ public final class MRpEval implements ParserVisitor {
 	 */
 	public final MRpRes evaluate(MRpCommandList comList)
 	{
-		scalerStore.reset();
-		v2Store.reset();
-		v3Store.reset();
-		v4Store.reset();
-		vnStore.reset();
-		m22Store.reset();
-		m23Store.reset();
-		m24Store.reset();
-		m32Store.reset();
-		m33Store.reset();
-		m34Store.reset();
-		m42Store.reset();
-		m43Store.reset();
-		m44Store.reset();
-		mnnStore.reset();
+		resetStores();
 	
 		// Now actually process the commands
 		int num = comList.getNumCommands();
+		try {
 		for(short commandNum=0;commandNum<num;++commandNum)
 		{
 			MRpCommandList.MRpCommand command = comList.commands[commandNum];
@@ -3319,7 +3422,7 @@ public final class MRpEval implements ParserVisitor {
 					v3Store.stack[v3Store.sp++]=v3Store.vars[aux2]; break;
 				case V4:
 					v4Store.stack[v4Store.sp++]=v4Store.vars[aux2]; break;
-				case Vn:
+				case VN:
 					vnStore.stack[vnStore.sp++]=vnStore.vars[aux2]; break;
 
 				case M22:
@@ -3343,7 +3446,7 @@ public final class MRpEval implements ParserVisitor {
 				case M44:
 					m44Store.stack[m44Store.sp++]=m44Store.vars[aux2]; break;
 
-				case Mnn:
+				case MNN:
 					mnnStore.stack[mnnStore.sp++]=mnnStore.vars[aux2]; break;
 				}
 				break;
@@ -3355,7 +3458,7 @@ public final class MRpEval implements ParserVisitor {
 				case V2: v2Store.add(); break; 
 				case V3: v3Store.add(); break; 
 				case V4: v4Store.add(); break; 
-				case Vn: vnStore.add(); break; 
+				case VN: vnStore.add(); break; 
 	
 				case M22: m22Store.add(); break; 
 				case M23: m23Store.add(); break; 
@@ -3366,7 +3469,7 @@ public final class MRpEval implements ParserVisitor {
 				case M42: m42Store.add(); break; 
 				case M43: m43Store.add(); break; 
 				case M44: m44Store.add(); break; 
-				case Mnn: mnnStore.add(); break; 
+				case MNN: mnnStore.add(); break; 
 				}
 				break;
 			case SUB:
@@ -3376,7 +3479,7 @@ public final class MRpEval implements ParserVisitor {
 				case V2: v2Store.sub(); break; 
 				case V3: v3Store.sub(); break; 
 				case V4: v4Store.sub(); break; 
-				case Vn: vnStore.sub(); break; 
+				case VN: vnStore.sub(); break; 
 	
 				case M22: m22Store.sub(); break; 
 				case M23: m23Store.sub(); break; 
@@ -3387,7 +3490,7 @@ public final class MRpEval implements ParserVisitor {
 				case M42: m42Store.sub(); break; 
 				case M43: m43Store.sub(); break; 
 				case M44: m44Store.sub(); break; 
-				case Mnn: mnnStore.sub(); break; 
+				case MNN: mnnStore.sub(); break; 
 				}
 				break;
 				
@@ -3401,7 +3504,7 @@ public final class MRpEval implements ParserVisitor {
 					case V2: v2Store.mulS(); break;
 					case V3: v3Store.mulS(); break;
 					case V4: v4Store.mulS(); break;
-					case Vn: vnStore.mulS(); break;
+					case VN: vnStore.mulS(); break;
 		
 					case M22: m22Store.mulS(); break;
 					case M23: m23Store.mulS(); break;
@@ -3414,7 +3517,7 @@ public final class MRpEval implements ParserVisitor {
 					case M42: m42Store.mulS(); break;
 					case M43: m43Store.mulS(); break;
 					case M44: m44Store.mulS(); break;
-					case Mnn: mnnStore.mulS(); break;
+					case MNN: mnnStore.mulS(); break;
 	
 					}
 					break;
@@ -3423,11 +3526,13 @@ public final class MRpEval implements ParserVisitor {
 					switch(aux2)
 					{
 					case SCALER: v2Store.mulS(); break;
-					case V2: mulV2V2(); break;
+                    //case V2: mulV2V2(); break;
+					case V2: cmul2(); break;
+                    case V3: cmul23(); break;
 					case M22: mulV2M22(); break; 
 					case M23: mulV2M23(); break; 
 					case M24: mulV2M24(); break;
-					case Mnn: mulVnMnn(
+					case MNN: mulVnMnn(
 						v2Store.stack[--v2Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break; 
 					}
@@ -3437,11 +3542,13 @@ public final class MRpEval implements ParserVisitor {
 					switch(aux2)
 					{
 					case SCALER: v3Store.mulS(); break;
-					case V3: mulV3V3(); break;
-					case M32: mulV3M32(); break; 
+					//case V3: mulV3V3(); break;
+                    case V2: cmul32(); break;
+					case V3: cmul3(); break;
+                    case M32: mulV3M32(); break; 
 					case M33: mulV3M33(); break; 
 					case M34: mulV3M34(); break; 
-					case Mnn: mulVnMnn(
+					case MNN: mulVnMnn(
 						v3Store.stack[--v3Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break; 
 					}
@@ -3455,22 +3562,22 @@ public final class MRpEval implements ParserVisitor {
 					case M42: mulV4M42(); break; 
 					case M43: mulV4M43(); break; 
 					case M44: mulV4M44(); break; 
-					case Mnn: mulVnMnn(
+					case MNN: mulVnMnn(
 						v4Store.stack[--v4Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break; 
 					}
 					break;
 				
-				case Vn:
+				case VN:
 					switch(aux2)
 					{
 					case SCALER: mnnStore.mulS(); break;
-					case Vn: 
+					case VN: 
 						VnObj r = vnStore.stack[--vnStore.sp];
 						VnObj l = vnStore.stack[--vnStore.sp];
 						mulVnVn(l,r);
 						break;
-					case Mnn: mulVnMnn(
+					case MNN: mulVnMnn(
 						vnStore.stack[--vnStore.sp],
 						mnnStore.stack[--mnnStore.sp]); 
 						break; 
@@ -3484,7 +3591,7 @@ public final class MRpEval implements ParserVisitor {
 					case M22:mulM22M22(); break; 
 					case M23:mulM22M23(); break; 
 					case M24:mulM22M24(); break;
-					case Mnn: mulMnnMnn(
+					case MNN: mulMnnMnn(
 						m22Store.stack[--m22Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break;
 					}
@@ -3498,7 +3605,7 @@ public final class MRpEval implements ParserVisitor {
 					case M32:mulM23M32(); break; 
 					case M33:mulM23M33(); break; 
 					case M34:mulM23M34(); break; 
-					case Mnn: mulMnnMnn(
+					case MNN: mulMnnMnn(
 						m23Store.stack[--m23Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break;
 					}
@@ -3512,7 +3619,7 @@ public final class MRpEval implements ParserVisitor {
 					case M42:mulM24M42(); break; 
 					case M43:mulM24M43(); break; 
 					case M44:mulM24M44(); break; 
-					case Mnn: mulMnnMnn(
+					case MNN: mulMnnMnn(
 						m24Store.stack[--m24Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break;
 					}
@@ -3526,7 +3633,7 @@ public final class MRpEval implements ParserVisitor {
 					case M22:mulM32M22(); break; 
 					case M23:mulM32M23(); break; 
 					case M24:mulM32M24(); break; 
-					case Mnn: mulMnnMnn(
+					case MNN: mulMnnMnn(
 						m32Store.stack[--m32Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break;
 					}
@@ -3540,7 +3647,7 @@ public final class MRpEval implements ParserVisitor {
 					case M32:mulM33M32(); break; 
 					case M33:mulM33M33(); break; 
 					case M34:mulM33M34(); break; 
-					case Mnn: mulMnnMnn(
+					case MNN: mulMnnMnn(
 						m33Store.stack[--m33Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break;
 					}
@@ -3554,7 +3661,7 @@ public final class MRpEval implements ParserVisitor {
 					case M42:mulM34M42(); break; 
 					case M43:mulM34M43(); break; 
 					case M44:mulM34M44(); break; 
-					case Mnn: mulMnnMnn(
+					case MNN: mulMnnMnn(
 						m34Store.stack[--m34Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break;
 					}
@@ -3568,7 +3675,7 @@ public final class MRpEval implements ParserVisitor {
 					case M22:mulM42M22(); break; 
 					case M23:mulM42M23(); break; 
 					case M24:mulM42M24(); break; 
-					case Mnn: mulMnnMnn(
+					case MNN: mulMnnMnn(
 						m42Store.stack[--m42Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break;
 					}
@@ -3582,7 +3689,7 @@ public final class MRpEval implements ParserVisitor {
 					case M32:mulM43M32(); break; 
 					case M33:mulM43M33(); break; 
 					case M34:mulM43M34(); break; 
-					case Mnn: mulMnnMnn(
+					case MNN: mulMnnMnn(
 						m43Store.stack[--m43Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break;
 					}
@@ -3596,13 +3703,13 @@ public final class MRpEval implements ParserVisitor {
 					case M42:mulM44M42(); break; 
 					case M43:mulM44M43(); break; 
 					case M44:mulM44M44(); break; 
-					case Mnn: mulMnnMnn(
+					case MNN: mulMnnMnn(
 						m44Store.stack[--m44Store.sp],
 						mnnStore.stack[--mnnStore.sp]); break;
 					}
 					break;
 
-				case Mnn:
+				case MNN:
 					switch(aux2)
 					{
 					case SCALER: mnnStore.mulS(); break;
@@ -3618,7 +3725,7 @@ public final class MRpEval implements ParserVisitor {
 						mulMnnVn(
 							mnnStore.stack[--mnnStore.sp], 
 							v4Store.stack[--v4Store.sp]); break;
-					case Vn:
+					case VN:
 						mulMnnVn(
 							mnnStore.stack[--mnnStore.sp], 
 							vnStore.stack[--vnStore.sp]); break;
@@ -3650,7 +3757,7 @@ public final class MRpEval implements ParserVisitor {
 					case M44: mulMnnMnn(
 						mnnStore.stack[--mnnStore.sp],
 						m44Store.stack[--m44Store.sp]); break;
-					case Mnn:
+					case MNN:
 						MnnObj r = mnnStore.stack[--mnnStore.sp];
 						MnnObj l = mnnStore.stack[--mnnStore.sp];
 						mulMnnMnn(l,r); break;
@@ -3663,10 +3770,22 @@ public final class MRpEval implements ParserVisitor {
 				switch(aux1)
 				{
 				case SCALER: scalerStore.divS(); break;
-				case V2: v2Store.divS(); break;
-				case V3: v3Store.divS(); break;
+				case V2: 
+				    switch(aux2) {
+				    case SCALER: v2Store.divS(); break;
+				    case V2: cdiv2(); break;
+                    case V3: cdiv23(); break;
+				    }
+				    break;
+				case V3: 
+                    switch(aux2) {
+                    case SCALER: v3Store.divS(); break;
+                    case V2: cdiv32(); break;
+                    case V3: cdiv3(); break;
+                    }
+                    break;
 				case V4: v4Store.divS(); break;
-				case Vn: vnStore.divS(); break;
+				case VN: vnStore.divS(); break;
 	
 				case M22: m22Store.divS(); break;
 				case M23: m23Store.divS(); break;
@@ -3679,7 +3798,7 @@ public final class MRpEval implements ParserVisitor {
 				case M42: m42Store.divS(); break;
 				case M43: m43Store.divS(); break;
 				case M44: m44Store.divS(); break;
-				case Mnn: mnnStore.divS(); break;
+				case MNN: mnnStore.divS(); break;
 
 				}
 				break;
@@ -3738,7 +3857,7 @@ public final class MRpEval implements ParserVisitor {
 				case V2: v2Store.assign(aux2); break; 
 				case V3: v3Store.assign(aux2); break; 
 				case V4: v4Store.assign(aux2); break; 
-				case Vn: vnStore.assign(aux2); break; 
+				case VN: vnStore.assign(aux2); break; 
 				case M22: m22Store.assign(aux2); break; 
 				case M23: m23Store.assign(aux2); break; 
 				case M24: m24Store.assign(aux2); break; 
@@ -3748,7 +3867,7 @@ public final class MRpEval implements ParserVisitor {
 				case M42: m42Store.assign(aux2); break; 
 				case M43: m43Store.assign(aux2); break; 
 				case M44: m44Store.assign(aux2); break; 
-				case Mnn: mnnStore.assign(aux2); break; 
+				case MNN: mnnStore.assign(aux2); break; 
 				}
 				break;
 
@@ -3787,7 +3906,7 @@ public final class MRpEval implements ParserVisitor {
 				case V2: dotV2(); break;
 				case V3: dotV3(); break;
 				case V4: dotV4(); break;
-				case Vn: dotVn(); break;
+				case VN: dotVn(); break;
 				}
 				break;
 			case CROSS:
@@ -3797,8 +3916,6 @@ public final class MRpEval implements ParserVisitor {
 				case V3: crossV3(); break;
 				}
 				break;
-			case FUN:
-				unitaryFunction(aux1); break;
 			case UMINUS:
 				switch(aux1)
 				{
@@ -3806,7 +3923,7 @@ public final class MRpEval implements ParserVisitor {
 				case V2: v2Store.uminus(); break; 
 				case V3: v3Store.uminus(); break; 
 				case V4: v4Store.uminus(); break; 
-				case Vn: vnStore.uminus(); break; 
+				case VN: vnStore.uminus(); break; 
 
 				case M22: m22Store.uminus(); break; 
 				case M23: m23Store.uminus(); break; 
@@ -3817,19 +3934,23 @@ public final class MRpEval implements ParserVisitor {
 				case M42: m42Store.uminus(); break; 
 				case M43: m43Store.uminus(); break; 
 				case M44: m44Store.uminus(); break; 
-				case Mnn: mnnStore.uminus(); break; 
+				case MNN: mnnStore.uminus(); break; 
 				}
 				break;
-			case FUN2: binaryFunction(aux1); break;
-			case FUN3: trianaryFunction(aux1); break;
-			case FUN4: quarteraryFunction(aux1); break;
 			case POWN:
 				scalerStore.powN(aux1); break;
 			case RECIP:
 				scalerStore.recroprical(); break;
+			case FUN0: nullaryFunction(aux1); break;
+			case FUN1: unitaryFunction(aux1); break;
+			case FUN2: binaryFunction(aux1); break;
+			case FUN3: trianaryFunction(aux1); break;
+			case FUN4: quarteraryFunction(aux1); break;
+			default:
+				naryFunction(aux1,command.command-FUN0); break;
 			}
 		} // end main loop
-
+	} catch(ParseException ex) { scalerRes.a = Double.NaN; return scalerRes; }
 		switch(comList.getFinalType())
 		{
 			case SCALER: 
@@ -3843,7 +3964,7 @@ public final class MRpEval implements ParserVisitor {
 				return v3Store.stack[--v3Store.sp];
 			case V4: 
 				return v4Store.stack[--v4Store.sp];
-			case Vn: 
+			case VN: 
 				return vnStore.stack[--vnStore.sp];
 			case M22:
 				return m22Store.stack[--m22Store.sp];
@@ -3863,12 +3984,30 @@ public final class MRpEval implements ParserVisitor {
 				return m43Store.stack[--m43Store.sp];
 			case M44:
 				return m44Store.stack[--m44Store.sp];
-			case Mnn:
+			case MNN:
 				return mnnStore.stack[--mnnStore.sp];
 			default:
 		}
 		return null;
 	}
+
+    void resetStores() {
+        scalerStore.reset();
+		v2Store.reset();
+		v3Store.reset();
+		v4Store.reset();
+		vnStore.reset();
+		m22Store.reset();
+		m23Store.reset();
+		m24Store.reset();
+		m32Store.reset();
+		m33Store.reset();
+		m34Store.reset();
+		m42Store.reset();
+		m43Store.reset();
+		m44Store.reset();
+		mnnStore.reset();
+    }
 
 	private final void dotV2(){
 		V2Obj r = v2Store.stack[--v2Store.sp]; 
@@ -3927,6 +4066,80 @@ public final class MRpEval implements ParserVisitor {
 		m22Store.stack[m22Store.sp++]=res;	
 	}
 
+	private final void cmul23(){
+	        V3Obj r = v3Store.stack[--v3Store.sp];
+	        V2Obj l = v2Store.stack[--v2Store.sp];
+	        V2Obj res = v2Store.heap[v2Store.hp++];
+	        res.a = l.a*r.a - l.b * r.b;
+	        res.b = l.a*r.b + l.b * r.a;
+	        v2Store.stack[v2Store.sp++]=res;  
+	}
+
+    private final void cmul32(){
+        V2Obj r = v2Store.stack[--v2Store.sp];
+        V3Obj l = v3Store.stack[--v3Store.sp];
+        V2Obj res = v2Store.heap[v2Store.hp++];
+        res.a = l.a*r.a - l.b * r.b;
+        res.b = l.a*r.b + l.b * r.a;
+        v2Store.stack[v2Store.sp++]=res;  
+}
+    private final void cmul2(){
+        V2Obj r = v2Store.stack[--v2Store.sp];
+        V2Obj l = v2Store.stack[--v2Store.sp];
+        V2Obj res = v2Store.heap[v2Store.hp++];
+        res.a = l.a*r.a - l.b * r.b;
+        res.b = l.a*r.b + l.b * r.a;
+        v2Store.stack[v2Store.sp++]=res;  
+}
+	   private final void cmul3(){
+           V3Obj r = v3Store.stack[--v3Store.sp];
+           V3Obj l = v3Store.stack[--v3Store.sp];
+           V2Obj res = v2Store.heap[v2Store.hp++];
+           res.a = l.a*r.a - l.b * r.b;
+           res.b = l.a*r.b + l.b * r.a;
+           v2Store.stack[v2Store.sp++]=res;  
+   }
+
+    private final void cdiv2(){
+        V2Obj r = v2Store.stack[--v2Store.sp];
+        V2Obj l = v2Store.stack[--v2Store.sp];
+        V2Obj res = v2Store.heap[v2Store.hp++];
+        double den = r.a*r.a + r.b*r.b;
+        res.a = (l.a*r.a + l.b * r.b)/den;
+        res.b = (-l.a*r.b + l.b * r.a)/den;
+        v2Store.stack[v2Store.sp++]=res;  
+    }
+
+    private final void cdiv23(){
+        V3Obj r = v3Store.stack[--v3Store.sp];
+        V2Obj l = v2Store.stack[--v2Store.sp];
+        V2Obj res = v2Store.heap[v2Store.hp++];
+        double den = r.a*r.a + r.b*r.b;
+        res.a = (l.a*r.a + l.b * r.b)/den;
+        res.b = (-l.a*r.b + l.b * r.a)/den;
+        v2Store.stack[v2Store.sp++]=res;  
+    }
+
+    private final void cdiv3(){
+        V3Obj r = v3Store.stack[--v3Store.sp];
+        V3Obj l = v3Store.stack[--v3Store.sp];
+        V2Obj res = v2Store.heap[v2Store.hp++];
+        double den = r.a*r.a + r.b*r.b;
+        res.a = (l.a*r.a + l.b * r.b)/den;
+        res.b = (-l.a*r.b + l.b * r.a)/den;
+        v2Store.stack[v2Store.sp++]=res;  
+    }
+
+    private final void cdiv32(){
+        V2Obj r = v2Store.stack[--v2Store.sp];
+        V3Obj l = v3Store.stack[--v3Store.sp];
+        V2Obj res = v2Store.heap[v2Store.hp++];
+        double den = r.a*r.a + r.b*r.b;
+        res.a = (l.a*r.a + l.b * r.b)/den;
+        res.b = (-l.a*r.b + l.b * r.a)/den;
+        v2Store.stack[v2Store.sp++]=res;  
+    }
+   
 	private final void mulM22V2(){
 		V2Obj r = v2Store.stack[--v2Store.sp];
 		M22Obj l = m22Store.stack[--m22Store.sp];
@@ -4858,9 +5071,31 @@ private final void mulMnnMnn(MatObj l,MatObj r){
 		mnnStore.stack[mnnStore.sp++]=new MnnObj(mat);
 	} 
 	
-	private static double LOG10 = Math.log(10.0);
+	private static final double LOG10 = Math.log(10.0);
+	private Stack stack = new Stack();
+	
+	private final void nullaryFunction(short fun) throws ParseException
+	{
+		double r;
+		int index = fun-CUSTOM;
+		PostfixMathCommandI pfmc = customFunctionCommands[index];
+		if(pfmc instanceof RealNullaryFunction) {
+			r = ((RealNullaryFunction) pfmc).evaluate();
+		}
+		else if(pfmc instanceof RealNaryFunction) {
+			double[] vals = new double[0];
+			r = ((RealNaryFunction) pfmc).evaluate(vals);
+		}
+		else
+		{
+			pfmc.setCurNumberOfParameters(0);
+			pfmc.run(stack);
+			r = ((Number) stack.pop()).doubleValue();
+		}
+		scalerStore.stack[scalerStore.sp++] = r;
+	}
 
-	private final void unitaryFunction(short fun)
+	private final void unitaryFunction(short fun) throws ParseException
 	{
 		double r = scalerStore.stack[--scalerStore.sp];
 		switch(fun) {
@@ -4892,29 +5127,81 @@ private final void mulMnnMnn(MatObj l,MatObj r){
 			case SEC: r = 1.0/Math.cos(r); break;
 			case COSEC:  r = 1.0/Math.sin(r); break;
 			case COT: r = 1.0/Math.tan(r); break;
+			default:
+				int index = fun-CUSTOM;
+				PostfixMathCommandI pfmc = customFunctionCommands[index];
+				if(pfmc instanceof RealUnaryFunction) {
+					r = ((RealUnaryFunction) pfmc).evaluate(r);
+				}
+				else if(pfmc instanceof RealNaryFunction) {
+					double[] vals = new double[]{r};
+					r = ((RealNaryFunction) pfmc).evaluate(vals);
+				}
+				else
+				{
+					pfmc.setCurNumberOfParameters(1);
+					stack.push(new Double(r));
+					pfmc.run(stack);
+					r = ((Number) stack.pop()).doubleValue();
+				}
 		}
 		scalerStore.stack[scalerStore.sp++] = r;
 	}
-	private final void binaryFunction(short fun){
+	
+	private final void binaryFunction(short fun) throws ParseException{
 		double r = scalerStore.stack[--scalerStore.sp];
 		double l = scalerStore.stack[--scalerStore.sp];
 		switch(fun) {
 		case ATAN2: r = Math.atan2(l,r); break;
+		default:
+			int index = fun-CUSTOM;
+			PostfixMathCommandI pfmc = customFunctionCommands[index];
+			if(pfmc instanceof RealBinaryFunction) {
+				r = ((RealBinaryFunction) pfmc).evaluate(l,r);
+			}
+			else if(pfmc instanceof RealNaryFunction) {
+				double[] vals = new double[]{l,r};
+				r = ((RealNaryFunction) pfmc).evaluate(vals);
+			}
+			else
+			{
+				pfmc.setCurNumberOfParameters(2);
+				stack.push(new Double(l));
+				stack.push(new Double(r));
+				pfmc.run(stack);
+				r = ((Number) stack.pop()).doubleValue();
+			}
 		}
 		scalerStore.stack[scalerStore.sp++] = r;
 	}
-	private final void trianaryFunction(short fun)
+	private final void trianaryFunction(short fun) throws ParseException
 	{
 		double a = scalerStore.stack[--scalerStore.sp];
 		double r = scalerStore.stack[--scalerStore.sp];
 		double l = scalerStore.stack[--scalerStore.sp];
 		switch(fun) {
 		case IF: r = (l>0.0?r:a); break;
+		default:
+			int index = fun-CUSTOM;
+			PostfixMathCommandI pfmc = customFunctionCommands[index];
+			if(pfmc instanceof RealNaryFunction) {
+				double[] args=new double[]{l,r,a};
+				r = ((RealNaryFunction) pfmc).evaluate(args);
+			}
+			else
+			{
+				pfmc.setCurNumberOfParameters(3);
+				stack.push(new Double(l));
+				stack.push(new Double(r));
+				stack.push(new Double(a));
+				pfmc.run(stack);
+				r = ((Number) stack.pop()).doubleValue();
+			}
 		}
 		scalerStore.stack[scalerStore.sp++] = r;
 		
 	}
-	private final void quarteraryFunction(short fun)
+	private final void quarteraryFunction(short fun) throws ParseException
 	{
 		double b = scalerStore.stack[--scalerStore.sp];
 		double a = scalerStore.stack[--scalerStore.sp];
@@ -4922,8 +5209,47 @@ private final void mulMnnMnn(MatObj l,MatObj r){
 		double l = scalerStore.stack[--scalerStore.sp];
 		switch(fun) {
 		case IF: r = (l>0.0?r: (l<0.0?a:b)); break;
+		default:
+			int index = fun-CUSTOM;
+			PostfixMathCommandI pfmc = customFunctionCommands[index];
+			if(pfmc instanceof RealNaryFunction) {
+				double[] args=new double[]{l,r,a,b};
+				r = ((RealNaryFunction) pfmc).evaluate(args);
+			}
+			else
+			{
+				pfmc.setCurNumberOfParameters(4);
+				stack.push(new Double(l));
+				stack.push(new Double(r));
+				stack.push(new Double(a));
+				stack.push(new Double(b));
+				pfmc.run(stack);
+				r = ((Number) stack.pop()).doubleValue();
+			}
 		}
 		scalerStore.stack[scalerStore.sp++] = r;
+		
+	}
+	private final void naryFunction(short fun,int nargs) throws ParseException
+	{
+		int index = fun-CUSTOM;
+		PostfixMathCommandI pfmc = customFunctionCommands[index];
+		if(pfmc instanceof RealNaryFunction) {
+			double[] args=new double[nargs];
+			for(int k=nargs-1;k>=0;--k)
+				args[k] = scalerStore.stack[--scalerStore.sp];
+			double r = ((RealNaryFunction) pfmc).evaluate(args);
+			scalerStore.stack[scalerStore.sp++] = r;
+		}
+		else {
+			pfmc.setCurNumberOfParameters(nargs);
+			scalerStore.sp -= nargs;
+			for(int k=0;k<nargs;++k)
+				stack.push(new Double(scalerStore.stack[scalerStore.sp+k]));
+			pfmc.run(stack);
+			double r = ((Number) stack.pop()).doubleValue();
+			scalerStore.stack[scalerStore.sp++] = r;
+		}
 		
 	}
 

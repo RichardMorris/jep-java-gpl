@@ -25,7 +25,7 @@ public interface NumberFactory {
 	 */
 	public Object createNumber(String value) throws ParseException;
 	/** Creates a number object with given double value. */
-	public Object createNumber(double value) throws ParseException;
+	//public Object createNumber(double value) throws ParseException;
 	/** Create a number object with given int value */
 	public Object createNumber(int value) throws ParseException;
 	/** Create a number object with given short value */
@@ -36,9 +36,9 @@ public interface NumberFactory {
 	public Object createNumber(boolean value) throws ParseException;
 	/** Creates a number object from a class implementing Number,
 	 * May actually just return the class. */
-	public Object createNumber(Number value) throws ParseException;
+	//public Object createNumber(Number value) throws ParseException;
 	/** Create a number object with given Complex value */
-	public Object createNumber(Complex value) throws ParseException;
+	//public Object createNumber(Complex value) throws ParseException;
 	
 	/** Return an object representing ZERO the additive identity. */
 	public Object getZero();

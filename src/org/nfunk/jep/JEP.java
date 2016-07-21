@@ -212,6 +212,11 @@ public class JEP {
 		
 		// rjm 13/2/05
 		funTab.put("binom", new Binomial());
+		
+		// rjm 26/1/07
+		funTab.put("round",new Round());
+		funTab.put("floor",new Floor());
+		funTab.put("ceil",new Ceil());
 	}
 
 	/**
@@ -337,7 +342,7 @@ public class JEP {
 	
 	/** 
 	 * Sets the value of a variable.
-	 * The variable must exist before hand.
+	 * The variable must exist beforehand.
 	 * @param name name of the variable.
 	 * @param val the initial value of the variable.
 	 * @throws NullPointerException if the variable has not been previously created
@@ -447,16 +452,23 @@ public class JEP {
 
 	/**
 	 * Parses the expression. If there are errors in the expression,
-	 * they are added to the <code>errorList</code> member.
+	 * they are added to the <code>errorList</code> member. Errors can be
+	 * obtained through <code>getErrorInfo()</code>.
 	 * @param expression_in The input expression string
+	 * @return the top node of the expression tree if the parse was successful,
+	 * <code>null</code> otherwise
 	 */
-	public void parseExpression(String expression_in) {
+	public Node parseExpression(String expression_in) {
 		Reader reader = new StringReader(expression_in);
 		
 		try {
 			// try parsing
 			errorList.removeAllElements();
 			topNode = parser.parseStream(reader, this);
+			
+			// if there is an error in the list, the parse failed
+			// so set topNode to null
+			if (hasError()) topNode = null;
 		} 
 		catch (Throwable e) 
 		{
@@ -494,6 +506,8 @@ public class JEP {
 				errorList.addElement(e.getMessage());
 			}
 		}
+		
+		return topNode;
 	}
 
 	/**
@@ -503,7 +517,7 @@ public class JEP {
 	 * This method should generally be used with the {@link #evaluate evaluate}
 	 * method rather than getValueAsObject.
 	 * @param expression represented as a string.
-	 * @return The top node of an tree representing the parsed expression.
+	 * @return The top node of a tree representing the parsed expression.
 	 * @throws ParseException
 	 * @since 2.3.0 alpha
 	 * @since 2.3.0 beta - will raise exception if errorList non empty
@@ -594,7 +608,7 @@ public class JEP {
 	public Object getValueAsObject() {
 		Object result;
 		
-		if (topNode == null || hasError()) return null;
+		if (topNode == null) return null;
 			// evaluate the expression
 		try {
 			result = ev.getValue(topNode,symTab);

@@ -97,4 +97,11 @@ public class BigReals extends Group implements FieldI,OrderedSetI {
 	public Number valueOf(String str) {
 		return new BigDecimal(str);
 	}
+	public Number valueOf(Number num) {
+		if(num instanceof BigDecimal) return num;
+		if(num instanceof BigInteger) return new BigDecimal((BigInteger) num);
+		if((num instanceof Long)||(num instanceof Integer)||(num instanceof Short))
+			return BigDecimal.valueOf(num.longValue());
+		return new BigDecimal(num.doubleValue());
+	}
 }

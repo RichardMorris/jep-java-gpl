@@ -14,8 +14,8 @@ import org.lsmp.djep.xjep.*;
  * Created on 05-Oct-2004
  */
 public class PolynomialVisitor extends DoNothingVisitor {
-	private OperatorSet opSet;
-	private FreeGroup fg;
+	private final OperatorSet opSet;
+	private ExtendedFreeGroup fg;
 	/**
 	 * 
 	 */
@@ -31,10 +31,17 @@ public class PolynomialVisitor extends DoNothingVisitor {
 	 * @return the polynomial representing the equation
 	 * @throws ParseException if the node cannot be converted to a Polynomial
 	 */
-	public Polynomial calcPolynomial(Node node,FreeGroup fg) throws ParseException
+	public Polynomial calcPolynomial(Node node,ExtendedFreeGroup fg) throws ParseException
 	{
 		this.fg = fg;
-		return (Polynomial) node.jjtAccept(this,null);
+		Polynomial poly;
+		try {
+		poly = (Polynomial) node.jjtAccept(this,null);
+		}
+		catch(IllegalArgumentException e) {
+			throw new ParseException(e.getMessage());
+		}
+		return poly;
 	}
 
 	public Object visit(ASTFunNode node, Object data) throws ParseException {
@@ -57,23 +64,34 @@ public class PolynomialVisitor extends DoNothingVisitor {
 		{
 			return fg.mul(children[0],children[1]);
 		}
+		if(op == opSet.getDivide())
+		{
+			return fg.div(children[0],children[1]);
+		}
+		if(op == opSet.getPower())
+		{
+			return fg.pow(children[0],children[1]);
+		}
+                if(op == opSet.getUMinus())
+                {
+                        return fg.getInverse(children[0]);
+                }
 		throw new ParseException("Operator "+op.getName()+" not supported");
 	}
 
 	public Object visit(ASTVarNode node, Object data) throws ParseException {
-		if(fg.getSymbol().equals(node.getName()))
-		{
-			return fg.getTPoly();
-		}
+		FreeGroupElement ele = fg.getVariableElement(node.getName()); 
+		if(ele != null) return ele;
+		//else if()
 		Variable var = node.getVar();
 		if(!var.hasValidValue())
 			throw new ParseException("Variable "+var.getName()+" does not have a valid value");
 	
-		return fg.valueOf(new Number[]{(Number) var.getValue()});
+		return fg.valueOf((Number)var.getValue());
 	}
 
 	public Object visit(ASTConstant node, Object data) throws ParseException {
-		return fg.valueOf(new Number[]{(Number) node.getValue()});
+		return fg.valueOf((Number) node.getValue());
 	}
 
 }

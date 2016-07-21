@@ -8,6 +8,7 @@ import org.lsmp.djep.groupJep.*;
  * Created on 15-Mar-2004
  */
 public class Permutation extends Number {
+	private static final long serialVersionUID = 1L;
 
 	protected GroupI group;
 	protected Integer perm[];
@@ -43,7 +44,7 @@ public class Permutation extends Number {
 		return this.add(p1.getInverse());
 	}
 
-	public boolean equals(Permutation p1)
+	public boolean equalsPerm(Permutation p1)
 	{
 		for(int i=0;i<len;++i)
 			if(this.perm[i] != p1.perm[i])
@@ -67,13 +68,13 @@ public class Permutation extends Number {
 	public String toString()
 	{
 		StringBuffer sb = new StringBuffer();
-		sb.append("[");
+		sb.append('[');
 		for(int i=0;i<this.perm.length;++i)
 		{
-			if(i>0) sb.append(",");
+			if(i>0) sb.append(',');
 			sb.append(this.perm[i].toString());
 		}
-		sb.append("]");
+		sb.append(']');
 		return sb.toString();
 	}
 	/** Just returns 0. Minimal implematation for compatability with Number. */

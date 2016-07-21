@@ -3,6 +3,9 @@
  */
 package org.lsmp.djep.vectorJep.values;
 
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+
 import org.lsmp.djep.vectorJep.*;
 
 /**
@@ -12,10 +15,11 @@ import org.lsmp.djep.vectorJep.*;
  * @version 1.3.0.2 now extends number
  */
 
-public class MVector implements MatrixValueI
+public class MVector implements MatrixValueI, Serializable 
 {
+	private static final long serialVersionUID = 5445294254280561613L;
 	private Object data[] = null;
-	private Dimensions dim;
+	private transient Dimensions dim;
 	//DoubleMatrix jsciMat;
 	
 	private MVector() {}
@@ -61,7 +65,7 @@ public class MVector implements MatrixValueI
 	/** sets the elements to those of the arguments. */
 	public void setEles(MatrixValueI val)
 	{
-		if(!dim.equals(val.getDim())) return;
+		if(!dim.equalsDim(val.getDim())) return;
 		System.arraycopy(((MVector) val).data,0,data,0,getNumEles());
 	}
 	public Object[] getEles() { return data; }
@@ -77,7 +81,7 @@ public class MVector implements MatrixValueI
 	public boolean equals(Object obj) {
 		if(!(obj instanceof MVector)) return false;
 		MVector vec = (MVector) obj;
-		if(!vec.getDim().equals(getDim())) return false;
+		if(!vec.getDim().equalsDim(getDim())) return false;
 		for(int i=0;i<data.length;++i)
 				if(!data[i].equals(vec.data[i])) return false;
 		return true;
@@ -98,5 +102,9 @@ public class MVector implements MatrixValueI
 		MVector tmp = new MVector(this.data.length);
 		tmp.setEles(this);
 		return tmp;
+	}
+	
+	private void readObject(ObjectInputStream s) {
+		this.dim = Dimensions.valueOf(this.data.length);
 	}
 }

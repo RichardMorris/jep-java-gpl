@@ -7,6 +7,7 @@ import org.lsmp.djep.djep.DJep;
 import org.lsmp.djep.djep.DiffRulesI;
 import org.nfunk.jep.ASTFunNode;
 import org.nfunk.jep.Node;
+import org.nfunk.jep.Operator;
 import org.nfunk.jep.ParseException;
 import org.nfunk.jep.function.PostfixMathCommandI;
 
@@ -16,10 +17,10 @@ import org.nfunk.jep.function.PostfixMathCommandI;
    **/
   public class PassThroughDiffRule implements DiffRulesI
   {
-	private String name;
-	private PostfixMathCommandI pfmc;
+	private final String name;
+	private final PostfixMathCommandI pfmc;
+	private Operator op=null;
 
-	private PassThroughDiffRule() {}
 	public PassThroughDiffRule(DJep djep,String inName)
 	{	  
 	  name = inName;
@@ -30,28 +31,35 @@ import org.nfunk.jep.function.PostfixMathCommandI;
 		name = inName;
 		pfmc = inPfmc; 
 	}
+	public PassThroughDiffRule(Operator op) {
+	    this(op.getName(),op.getPFMC());
+	    this.op = op;
+	}
 	public String toString()
 	{
 		if(pfmc==null)
 		{
-			return "" + name +"\t\tPassthrough but no math command!"; 
+			return name +" Passthrough but no math command!"; 
 		}
 		switch(pfmc.getNumberOfParameters())
 		{
 		case 0:
-			return name + "  \t\tdiff("+name+",x) -> "+name;
+			return "diff("+name+",x) -> "+name;
 		case 1:
-			return name + "  \tdiff("+name+"(a),x) -> "+name+"(da/dx)";
+			return "diff("+name+"a,x) -> "+name+"diff(a,x)";
 		case 2:
-			return name + "  \tdiff("+name+"(a,b),x) -> "+name+"(da/dx,db/dx)";
+			return "diff(a"+name+"b,x) -> diff(a,x)"+name+"diff(b,x)";
 		default:
-			return name + "  \tdiff("+name+"(a,b,...),x) -> "+name+"(da/dx,db/dx,...)";
+			return "diff(a"+name+"b"+name+"...,x) -> diff(a,x)"+name+"diff(b,x)"+name+"...";
 		}
 	}
 	public String getName() { return name; }
   	  	
 	public Node differentiate(ASTFunNode node,String var,Node [] children,Node [] dchildren,DJep djep) throws ParseException
 	{
+	    if(op!=null)
+		return djep.getNodeFactory().buildOperatorNode(op,dchildren);
+	    else
 		return djep.getNodeFactory().buildFunctionNode(node,dchildren);
 	}
   }

@@ -18,7 +18,6 @@ public class AdditionDiffRule implements DiffRulesI
   private String name;
 
   /** private default constructor, a name must always be specified. */
-  private AdditionDiffRule() { /* nothing happening */ 	}
   
   public AdditionDiffRule(String inName)
   {	  
@@ -26,7 +25,8 @@ public class AdditionDiffRule implements DiffRulesI
   }
 
   public String toString()
-  {	  return name + "  \t\tdiff(f+g,x) -> diff(f,x)+diff(g,x)";  }
+  {	  return name + "  \t\tdiff(f"+name+"g,x) -> diff(f,x)"+name+"diff(g,x)";  }
+  
   public String getName() { return name; }
   	
   public Node differentiate(ASTFunNode node,String var,Node [] children,Node [] dchildren,DJep djep) throws ParseException

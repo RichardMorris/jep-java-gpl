@@ -5,6 +5,7 @@ import junit.framework.*;
 import org.nfunk.jep.*;
 import org.lsmp.djep.djep.*;
 import org.lsmp.djep.rewrite.*;
+import org.lsmp.djep.xjep.XJep;
 
 /* @author rich
  * Created on 19-Nov-2003
@@ -17,7 +18,7 @@ import org.lsmp.djep.rewrite.*;
 public class RewriteTest extends DJepTest {
 	DJep j;
 	public static final boolean SHOW_BAD=false;
-	
+
 	public RewriteTest(String name) {
 		super(name);
 	}
@@ -26,8 +27,8 @@ public class RewriteTest extends DJepTest {
 		// Create an instance of this class and analyse the file
 
 		TestSuite suite= new TestSuite(RewriteTest.class);
-//		DJepTest jt = new DJepTest("DJepTest");
-//		jt.setUp();
+		//		DJepTest jt = new DJepTest("DJepTest");
+		//		jt.setUp();
 		suite.run(new TestResult());
 	}	
 
@@ -46,7 +47,7 @@ public class RewriteTest extends DJepTest {
 		j.setAllowAssignment(true);    
 		j.addStandardDiffRules();
 		j.getPrintVisitor().setMaxLen(80);
-        
+
 		j.addVariable("x", 0);
 		RewriteVisitor ev = new RewriteVisitor();
 		RewriteRuleI expand = new ExpandBrackets(j);
@@ -54,9 +55,9 @@ public class RewriteTest extends DJepTest {
 		RewriteRuleI rules[] = new RewriteRuleI[]{expand,colectPower};
 
 		String expresions[] = new String[]{
-			"x*x",
-			"x*x^2",
-			"x^2*x"		
+				"x*x",
+				"x*x^2",
+				"x^2*x"		
 		};
 		for(int i=0;i<expresions.length;++i)
 		{
@@ -67,6 +68,63 @@ public class RewriteTest extends DJepTest {
 			System.out.print("Expand:\t");
 			j.println(node2);
 		}
+	}
+
+	static class MultiplyBothSides extends AbstractRewrite {
+		public MultiplyBothSides(XJep xj) {
+			super(xj);
+		}
+
+		public boolean test(ASTFunNode node, Node[] children) {
+			Operator op = node.getOperator();
+			if(this.opSet.getAssign() == op) {
+				Node rhs = node.jjtGetChild(1);
+				if(rhs instanceof ASTFunNode) {
+					Operator op2 = ((ASTFunNode) rhs).getOperator();
+					if(this.opSet.getDivide() == op2) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		public Node apply(ASTFunNode node, Node[] children)
+				throws ParseException {
+
+			Node lhs = node.jjtGetChild(0);
+			Node rhs = node.jjtGetChild(1);
+			Node rhs1 = rhs.jjtGetChild(0);
+			Node rhs2 = rhs.jjtGetChild(1);
+			Node newlhs = this.nf.buildOperatorNode(opSet.getMultiply(), lhs, rhs2);
+			Node newrhs = rhs1;
+			Node res = nf.buildOperatorNode(opSet.getAssign(), newlhs, newrhs);
+			return res;
+		}
+	}
+
+	public void testMultiplyBoth() throws Exception
+	{
+		XJep j=new XJep();
+		j.addStandardFunctions();
+		j.addStandardConstants();
+		j.setImplicitMul(true);    
+		j.addComplex();
+		j.setAllowUndeclared(true);    
+		j.setAllowAssignment(true);    
+		j.getPrintVisitor().setMaxLen(80);
+
+		j.addVariable("x", 0);
+		RewriteVisitor ev = new RewriteVisitor();
+		RewriteRuleI rules[] = new RewriteRuleI[]{new MultiplyBothSides(j)};
+
+		String expressions="m=x/z";
+		Node node = j.parse(expressions);
+		System.out.print("Eqn:\t");
+		j.println(node);
+		Node node2 = ev.rewrite(node,j,rules,true);
+		System.out.print("Expand:\t");
+		j.println(node2);
 	}
 
 	public void testTaylor() throws Exception
@@ -80,13 +138,13 @@ public class RewriteTest extends DJepTest {
 		taylorParser.addComplex();
 		taylorParser.addStandardDiffRules();
 		taylorParser.getPrintVisitor().setMaxLen(80);
-       
+
 		taylorParser.addVariable("x", 0);
 		RewriteVisitor ev = new RewriteVisitor();
 		RewriteRuleI expand = new ExpandBrackets(taylorParser);
 		RewriteRuleI colectPower = new CollectPowers(taylorParser);
 		RewriteRuleI rules[] = new RewriteRuleI[]{expand,colectPower};
-		
+
 		Node node2 = taylorParser.parse("ln(1+x)");
 		Node node3 = node2;
 		for(int i=1;i<5;++i)
@@ -104,7 +162,7 @@ public class RewriteTest extends DJepTest {
 			node3 = node5;
 		}
 	}
-	
+
 	public void testMemory() throws Exception
 	{
 		DJep taylorParser=new DJep();
@@ -115,7 +173,7 @@ public class RewriteTest extends DJepTest {
 		taylorParser.setImplicitMul(true);    
 		taylorParser.addComplex();
 		taylorParser.addStandardDiffRules();
-       
+
 		taylorParser.addVariable("x", 0);
 		/*
 		try {
@@ -124,9 +182,9 @@ public class RewriteTest extends DJepTest {
 			Node simp = taylorParser.simplify(processed); 
 		}
 		catch(OutOfMemoryError e) { System.out.println(e.getMessage()); e.printStackTrace(); }
-		
+
 //		System.out.println(taylorParser.toString(simp));
- 		*/   
+		 */   
 	}
 
 	public void testBad() throws ParseException

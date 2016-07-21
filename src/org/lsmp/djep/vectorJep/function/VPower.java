@@ -25,9 +25,9 @@ public class VPower extends PostfixMathCommand implements BinaryOperatorI
 	}
 	public Dimensions calcDim(Dimensions ldim,Dimensions rdim) throws ParseException
 	{
-		if(ldim.equals(Dimensions.ONE) && rdim.equals(Dimensions.ONE))
+		if(ldim.equalsDim(Dimensions.ONE) && rdim.equalsDim(Dimensions.ONE))
 			return Dimensions.ONE;
-		if(ldim.equals(Dimensions.THREE) && rdim.equals(Dimensions.THREE))
+		if(ldim.equalsDim(Dimensions.THREE) && rdim.equalsDim(Dimensions.THREE))
 			return Dimensions.THREE;
 		throw new ParseException("Power: both sides must be either 0 dimensional or 3D vectors");
 	}
@@ -37,14 +37,14 @@ public class VPower extends PostfixMathCommand implements BinaryOperatorI
 		MatrixValueI lhs,
 		MatrixValueI rhs) throws ParseException
 	{
-		if(lhs.getDim().equals(Dimensions.ONE)
-		 && rhs.getDim().equals(Dimensions.ONE))
+		if(lhs.getDim().equalsDim(Dimensions.ONE)
+		 && rhs.getDim().equalsDim(Dimensions.ONE))
 		{
 			res.setEle(0,pow.power(lhs.getEle(0),rhs.getEle(0)));
 			return res;
 		}
-		if(lhs.getDim().equals(Dimensions.THREE)
-		 && rhs.getDim().equals(Dimensions.THREE))
+		if(lhs.getDim().equalsDim(Dimensions.THREE)
+		 && rhs.getDim().equalsDim(Dimensions.THREE))
 		{
 			return cross.calcValue(res,lhs,rhs);
 		}

@@ -2,9 +2,15 @@
  * Created on 26-Oct-2003
  */
 package org.lsmp.djep.djep;
-import java.util.*;
-import org.nfunk.jep.*;
-import org.lsmp.djep.xjep.*;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.Hashtable;
+
+import org.lsmp.djep.xjep.PrintVisitor;
+import org.lsmp.djep.xjep.XVariable;
+import org.nfunk.jep.ASTConstant;
+import org.nfunk.jep.Node;
+import org.nfunk.jep.ParseException;
 
 /**
  * Holds all info about a variable.
@@ -131,12 +137,25 @@ public class DVariable extends XVariable
 	PartialDerivative findDerivativeSorted(String derivnames[],DJep jep)
 		throws ParseException
 	{
-		if(getEquation()==null) return null;
+		//if(getEquation()==null) return null;
 		
 		if(derivnames == null) throw new ParseException("findDerivativeSorted: Null array of names");
 		PartialDerivative res = getDerivativeSorted(derivnames);
 		if(res!=null) return res;
-		
+		res = calculateDerivative(derivnames,jep);
+		setDerivative(derivnames,res);
+		return res;
+	}
+	
+	/** calculate a derivative.
+	 * Either by differentating one of the existing derivatives, or by
+	 * differenting the equation of this variable.
+	 * The method is protected, sub classes can override the methods 
+	 * where some other means of calculating the derivative is needed.
+	 */
+	protected PartialDerivative calculateDerivative(String derivnames[],DJep jep)
+	throws ParseException
+	{
 		// Deriv not found. Calculate from lower derivative
 		int origlen = derivnames.length;
 		Node lowereqn; // equation for lower derivative (or root equation)
@@ -157,8 +176,7 @@ public class DVariable extends XVariable
 		}
 		Node deriv = jep.differentiate(lowereqn,derivnames[origlen-1]);
 		Node simp = jep.simplify(deriv);
-		res = createDerivative(derivnames,simp); 
-		setDerivative(derivnames,res);
+		PartialDerivative res = createDerivative(derivnames,simp); 
 		return res;	
 	}
 
@@ -207,7 +225,8 @@ public class DVariable extends XVariable
 			if(var.hasValidValue()) sb.append(var.getValue() );
 			else	sb.append("NA");
 			sb.append("\t");
-			sb.append(bpv.toString(var.getEquation()));
+			if(var.hasEquation())
+				sb.append(bpv.toString(var.getEquation()));
 		}
 		bpv.setMode(DPrintVisitor.PRINT_VARIABLE_EQNS,mode);
 		return sb.toString();
@@ -219,5 +238,10 @@ public class DVariable extends XVariable
 	 */
 	public Enumeration allDerivatives() {
 		return derivatives.elements();
+	}
+	public boolean derivativeIsTrivallyZero() {
+		if(!this.hasEquation()) return true;
+		if(this.getEquation() instanceof ASTConstant) return true;
+		return false;
 	}
 }

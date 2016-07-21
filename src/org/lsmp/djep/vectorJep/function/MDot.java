@@ -25,9 +25,9 @@ public class MDot extends MMultiply implements BinaryOperatorI
 	public MDot() {
 		numberOfParameters = 2;
 	}
-	public Dimensions calcDim(Dimensions l,Dimensions r) {
-		if(l.equals(r) && l.is1D()) return Dimensions.ONE;
-		return null;
+	public Dimensions calcDim(Dimensions l,Dimensions r) throws ParseException {
+		if(l.equalsDim(r) && l.is1D()) return Dimensions.ONE;
+		throw new ParseException("Dimensions do not match "+l+" "+r);
 	}
 	
 	/** calculates the value.
@@ -80,7 +80,7 @@ public class MDot extends MMultiply implements BinaryOperatorI
 	/** returns lhs . rhs */
 	public Object dot(MVector lhs, MVector rhs) throws ParseException
 	{
-		if(!lhs.getDim().equals(rhs.getDim())) throw new ParseException("Dot: Miss match in sizes ("+lhs.getDim()+","+rhs.getDim()+")");
+		if(!lhs.getDim().equalsDim(rhs.getDim())) throw new ParseException("Dot: Miss match in sizes ("+lhs.getDim()+","+rhs.getDim()+")");
 		Scaler res = (Scaler) Scaler.getInstance(new Double(0.0));
 		calcValue(res,lhs,rhs);
 		return res.getEle(0);

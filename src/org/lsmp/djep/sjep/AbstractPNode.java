@@ -31,7 +31,7 @@ public abstract class AbstractPNode implements PNodeI
 		if(node.isZero()) return this;
 		if(this.isZero()) return node;
 		
-		if(this.equals(node))
+		if(this.equalsPNode(node))
 			return new Monomial(pc,pc.twoConstant,this);
 			
 		if(node instanceof Polynomial)
@@ -47,7 +47,7 @@ public abstract class AbstractPNode implements PNodeI
 		if(node.isZero()) return this;
 		if(this.isZero()) return node.negate();
 
-		if(this.equals(node))
+		if(this.equalsPNode(node))
 			return pc.zeroConstant;
 		
 		if(node instanceof Polynomial)
@@ -71,7 +71,7 @@ public abstract class AbstractPNode implements PNodeI
 		if(node.isOne())
 			return this;
 
-		if(this.equals(node))
+		if(this.equalsPNode(node))
 			return new Monomial(pc,pc.oneConstant,this,pc.twoConstant);
 
 		if(node instanceof PConstant)
@@ -102,7 +102,7 @@ public abstract class AbstractPNode implements PNodeI
 
 	public PNodeI div(PNodeI node) throws ParseException
 	{
-		if(this.equals(node))
+		if(this.equalsPNode(node))
 			return pc.oneConstant;
 		if(node.isZero())
 			return pc.infConstant;
@@ -137,7 +137,7 @@ public abstract class AbstractPNode implements PNodeI
 			pc.oneConstant,this,node);
 	}
 
-	public boolean equals(PNodeI node)	{return false;	}
+	public boolean equalsPNode(PNodeI node)	{return false;	}
 	public boolean isZero()	{return false;	}
 	public boolean isOne()	{return false;	}
 	/**
@@ -173,7 +173,7 @@ public abstract class AbstractPNode implements PNodeI
 		{
 			if( node instanceof PConstant
 			 || node instanceof PVariable
-			 || node instanceof PFunction) return 1;
+			 || node instanceof POperator) return 1;
 			if( node instanceof PFunction)
 				return ((PFunction) this).compareTo((PFunction) node);
 		}

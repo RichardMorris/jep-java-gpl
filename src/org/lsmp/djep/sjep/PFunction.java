@@ -4,7 +4,6 @@
 package org.lsmp.djep.sjep;
 import org.nfunk.jep.*;
 import org.nfunk.jep.function.*;
-import org.lsmp.djep.xjep.*;
 /**
  * Represents a function.
  * 
@@ -27,7 +26,7 @@ public class PFunction extends AbstractPNode {
 		this.args = args;
 	}
 
-	public boolean equals(PNodeI node)
+	public boolean equalsPNode(PNodeI node)
 	{
 		if(!(node instanceof PFunction)) return false;
 		PFunction fun = (PFunction) node;
@@ -35,7 +34,7 @@ public class PFunction extends AbstractPNode {
 		if(args.length != fun.args.length)
 			return false;
 		for(int i=0;i<args.length;++i)
-			if(!args[i].equals(fun.args[i])) return false;
+			if(!args[i].equalsPNode(fun.args[i])) return false;
 		return true;
 	}
 	/**

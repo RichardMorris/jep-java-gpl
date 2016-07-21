@@ -48,7 +48,7 @@ public class MatrixEvaluator implements ParserVisitor,EvaluatorI
 		if(var.hasValidValue())
 			return var.getMValue();
 		if(!var.hasEquation())
-			throw new ParseException("Tried to evaluate a variable with an invalid value but no equation");
+			throw new ParseException("Tried to evaluate a variable "+var.getName()+" with an invalid value but no equation");
 		MatrixValueI res = (MatrixValueI) var.getEquation().jjtAccept(this,data);
 		var.setMValue(res);
 		return res;
@@ -114,7 +114,7 @@ public class MatrixEvaluator implements ParserVisitor,EvaluatorI
 		for(int i=0;i<num;++i)
 		{
 			MatrixValueI vec = (MatrixValueI) node.jjtGetChild(i).jjtAccept(this,data);
-			if(!vec.getDim().equals(Dimensions.ONE))
+			if(!vec.getDim().equalsDim(Dimensions.ONE))
 				throw new ParseException("Arguments of "+node.getName()+" must be scalers");			
 			stack.push(vec.getEle(0));
 		}

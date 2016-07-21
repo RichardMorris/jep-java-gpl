@@ -80,6 +80,11 @@ public class Integers extends Group implements IntegralDomainI,HasDivI,
 	public Number valueOf(String str) {
 		return new BigInteger(str);
 	}
-	
+
 	public String toString() { return "Z: integers"; }
+
+	public Number valueOf(Number num) {
+		if(num instanceof BigInteger) return num;
+		return BigInteger.valueOf(num.longValue());
+	}
 }

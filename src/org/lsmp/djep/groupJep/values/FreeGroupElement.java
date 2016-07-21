@@ -14,6 +14,7 @@ import org.nfunk.jep.type.*;
  * Created on 09-Mar-2004
  */
 public class FreeGroupElement extends Polynomial implements HasComplexValueI {
+	private static final long serialVersionUID = 1L;
 
 	FreeGroup group;
 

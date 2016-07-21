@@ -45,11 +45,11 @@ public class PermutationGroup extends Group implements GroupI , HasListI {
 	}
 
 	public boolean equals(Number a, Number b) {
-		return ((Permutation) a).equals((Permutation) b);
+		return ((Permutation) a).equalsPerm((Permutation) b);
 	}
 
 	public Number valueOf(String s) {
-		return Integer.valueOf(s);
+		return new Permutation(this,new Integer[]{Integer.valueOf(s)});
 	}
 
 	public Number valueOf(Number[] eles) {
@@ -63,6 +63,10 @@ public class PermutationGroup extends Group implements GroupI , HasListI {
 
 	public Number list(Number[] eles) {
 		return this.valueOf(eles);
+	}
+
+	public Number valueOf(Number num) {
+		return new Permutation(this,new Integer[]{Integer.valueOf(num.intValue())});
 	}
 
 }

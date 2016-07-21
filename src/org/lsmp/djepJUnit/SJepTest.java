@@ -67,7 +67,7 @@ public class SJepTest extends TestCase {
 		Node n2 = j.parse(s2);
 		PNodeI p2 = pc.createPoly(n2);
 		PNodeI e2 = p2.expand();
-		if(e1.equals(e2)){
+		if(e1.equalsPNode(e2)){
 			System.out.println("Sucess: \""+s1+"\" equals \""+s2+"\"");
 		}else{
 			System.out.println("Error: \""+s1+"\" is not equal to \""+s2+"\"");
@@ -549,6 +549,45 @@ public class SJepTest extends TestCase {
 	{
 		assertPolynomialEquals("a+b-(c+d)","(a+b)-c-d");
 	}
+
+	public void testBug1744036() throws Exception
+	{
+        	int terms = 5;
+        	int term = 0;
+        	double point = 0.5;
+        	String function = "tan(x)"; 
+        	j.addVariable("x", point);
+        	j.getPrintVisitor().setMaxLen(80);
+        	Node n = j.parse(function);
+        	Double evaluations[] = new Double[terms];
+        	while (term < terms) {
+        	  // evaluate the node
+        	  evaluations[term] = (Double) j.evaluate(n);
+        	  // replace the node by its derivative (which is  simplified first)
+        	  Node diff = j.differentiate(n, "x");
+        	  System.out.print("diff: ");
+        	  j.println(diff);
+        	  PNodeI poly = pc.createPoly(diff);
+        	  n = poly.toNode();
+        	  System.out.print("simp: ");
+        	  j.println(n);
+        	  term++;
+        	}
+	}
+
+	
+	public void testPolySimp3() throws ParseException,Exception
+	{
+		String s = "1.0 + 1.71(x - 0.0) + 1.47(x - 0.0)(x - 1.0) + 0.84(x - 0.0)(x - 1.0)(x - 2.0)";
+		Node node = j.parse(s);
+		PNodeI pnode = pc.createPoly(node);
+		PNodeI pnode2 = pnode.expand();
+		System.out.println(pnode2);
+		Node node2 = pnode2.toNode();
+		j.println(node2);
+//		expandTestString(s,"3+2*x");
+	}
+
 	public void testBad() throws ParseException
 	{
 		if(SHOW_BAD)

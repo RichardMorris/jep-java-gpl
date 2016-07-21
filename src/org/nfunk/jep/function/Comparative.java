@@ -82,7 +82,7 @@ public class Comparative extends PostfixMathCommand
 			double y = ((Number)param2).doubleValue();
 			return (x<y);
 		}
-		throw new ParseException("< not defined for object of type "+param1.getClass().getName()+" and "+param1.getClass().getName());
+		throw new ParseException("< not defined for object of type "+param1.getClass().getName()+" and "+param2.getClass().getName());
 	}
 	
 	public boolean gt(Object param1, Object param2)	throws ParseException
@@ -96,7 +96,7 @@ public class Comparative extends PostfixMathCommand
 			double y = ((Number)param2).doubleValue();
 			return (x>y);
 		}
-		throw new ParseException("> not defined for object of type "+param1.getClass().getName()+" and "+param1.getClass().getName());
+		throw new ParseException("> not defined for object of type "+param1.getClass().getName()+" and "+param2.getClass().getName());
 	}
 	
 	public boolean le(Object param1, Object param2)	throws ParseException
@@ -110,7 +110,7 @@ public class Comparative extends PostfixMathCommand
 			double y = ((Number)param2).doubleValue();
 			return (x<=y);
 		}
-		throw new ParseException("<= not defined for object of type "+param1.getClass().getName()+" and "+param1.getClass().getName());
+		throw new ParseException("<= not defined for object of type "+param1.getClass().getName()+" and "+param2.getClass().getName());
 	}
 	
 	public boolean ge(Object param1, Object param2)	throws ParseException
@@ -124,7 +124,7 @@ public class Comparative extends PostfixMathCommand
 			double y = ((Number)param2).doubleValue();
 			return (x>=y);
 		}
-		throw new ParseException(">= not defined for object of type "+param1.getClass().getName()+" and "+param1.getClass().getName());
+		throw new ParseException(">= not defined for object of type "+param1.getClass().getName()+" and "+param2.getClass().getName());
 	}
 
 	public boolean eq(Object param1, Object param2)	throws ParseException
@@ -222,7 +222,7 @@ public class Comparative extends PostfixMathCommand
 			int r = (x>=y) ? 1 : 0;
 			return new Double(r);
 		}
-		throw new ParseException(">= not defined for object of type "+param1.getClass().getName()+" and "+param1.getClass().getName());
+		throw new ParseException(">= not defined for object of type "+param1.getClass().getName()+" and "+param2.getClass().getName());
 	}
 	
 		{

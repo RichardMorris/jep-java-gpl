@@ -34,6 +34,7 @@ public class DJepConsole extends XJepConsole
 		super.printHelp();
 		println("'diff(x^2,x)' to differentiate x^2 with respect to x");
 		println("'verbose on', 'verbose off' switch verbose mode on or off");
+		println("'rules', to print the set of differenation rules used");
 	}
 
 	public void printIntroText()
@@ -45,6 +46,15 @@ public class DJepConsole extends XJepConsole
 	public String getPrompt()
 	{
 		return "DJep > ";
+	}
+
+	public boolean testSpecialCommands(String command) {
+	    if(command.equals("rules")) {
+		DJep dj = (DJep) this.j;
+		dj.getDifferentationVisitor().printDiffRules();
+		return false;
+	    }
+	    return super.testSpecialCommands(command);
 	}
 
 	public void processEquation(Node node) throws ParseException

@@ -31,10 +31,15 @@ public class XSymbolTable extends SymbolTable
 		super(varFac);
 	}
 	
-	/** Creates a new SymbolTable with the same variable factory as this. */
-	public SymbolTable newInstance()
+	/** 
+	 * Creates a new SymbolTable with the same variable factory as this, and the same set of constants. 
+	 *
+	 **/
+	public XSymbolTable newInstance()
 	{
-		return new XSymbolTable(this.getVariableFactory());
+		XSymbolTable st = new XSymbolTable(this.getVariableFactory());
+		st.copyConstants(this);
+		return st;
 	}
 
 	/** Prints the contents of the symbol table displaying its equations and value. */	
@@ -48,7 +53,10 @@ public class XSymbolTable extends SymbolTable
 		}
 	}	
 	
-	/** Copy the values of all constants into this from the supplied symbol table. */
+	/** Copy the values of all constants from the supplied symbol table into this symbol table. 
+	 * 
+	 * @param symTab the Symbol table with existing constants.
+	 */
 	public void copyConstants(SymbolTable symTab)
 	{
 		for(Enumeration e = symTab.elements(); e.hasMoreElements(); ) 

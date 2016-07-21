@@ -9,6 +9,7 @@
 
 
 package  org.nfunk.jep.type;
+import java.io.Serializable;
 import java.text.NumberFormat;
 
 /**
@@ -34,8 +35,10 @@ import java.text.NumberFormat;
 /* @version 2.3.0 beta 2 does not implement Number anymore, as caused too many problems.
  */
 
-public class Complex
+public class Complex implements Serializable 
 {
+	private static final long serialVersionUID = 6971760029217887036L;
+
 	/** the real component */
 	private double re;
 	
@@ -174,7 +177,7 @@ public class Complex
 	}
 	/**
 	 * Always override hashCode when you override equals.
-	 * Efective Java, Joshua Bloch, Sun Press
+	 * Effective Java, Joshua Bloch, Sun Press
 	 */
 	public int hashCode() {
 		int result = 17;
@@ -270,7 +273,7 @@ public class Complex
 	}
 
 	/**
-	 * Returns the argument of this complex number (Math.atan2(re,im))
+	 * Returns the argument of this complex number (Math.atan2(im,re))
 	 */
 	public double arg() {
 		return Math.atan2(im,re);
@@ -352,11 +355,15 @@ public class Complex
 	  * final evaluation of the result, the slight difference of the
 	  * argument from pi causes a non-zero value for the real component
 	  * of the result. Because the value of the base is so high, the error
-      * is magnified.Although the error is normal for floating 
-	  * point calculations, the consideration of commonly occuring special
+      * is magnified. Although the error is normal for floating 
+	  * point calculations, the consideration of commonly occurring special
 	  * cases improves the accuracy and aesthetics of the results.<p>
 	  * If you know a more elegant way to solve this problem, please let
-	  * me know at nathanfunk@hotmail.com .
+	  * me know at nathan.funk@singularsys.com .
+	  * 
+	  * When re < 0 && im == 0 then arg(z) = pi
+	  * When re == 0 && im
+	  * abs(re)^exp * (cos(exp*pi) + i*sin(exp*pi))
 	  */
 	public Complex power(double exponent) {
 		// z^exp = abs(z)^exp * (cos(exp*arg(z)) + i*sin(exp*arg(z)))
@@ -366,11 +373,13 @@ public class Complex
 
 		// consider special cases to avoid floating point errors
 		// for power expressions such as (-1e20)^2
-		if (im==0 && re<0) {specialCase = true; factor = 2;}
-		if (re==0 && im>0) {specialCase = true; factor = 1;}
-		if (re==0 && im<0) {specialCase = true; factor = -1;}
+		if (re < 0 && im == 0) {specialCase = true; factor = 2;}  // arg(z) = pi    =  2*pi/2
+		if (re == 0 && im > 0) {specialCase = true; factor = 1;}  // arg(z) = pi/2  =  1*pi/2
+		if (re == 0 && im < 0) {specialCase = true; factor = -1;} // arg(z) = -pi/2 = -1*pi/2
 		
-		if (specialCase && factor*exponent == (int)(factor*exponent)) {
+		if (specialCase && 
+			(factor*exponent == (int)(factor*exponent))) {
+			
 			short[] cSin = {0,1,0,-1}; //sin of 0, pi/2, pi, 3pi/2
 			short[] cCos = {1,0,-1,0}; //cos of 0, pi/2, pi, 3pi/2
 			

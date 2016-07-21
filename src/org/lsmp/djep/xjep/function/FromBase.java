@@ -40,10 +40,10 @@ public class FromBase extends PostfixMathCommand {
 
     public void run(Stack s) throws ParseException {
         int nargs = this.curNumberOfParameters;
-        if(globalBase == -1 && nargs != 2)
-            throw new ParseException("fromBase: number of arguments should be 2");
-        if(globalBase != -1 && nargs != 1)
-            throw new ParseException("fromBase: number of arguments should be 1");
+//        if(globalBase == -1 && nargs != 2)
+//            throw new ParseException("fromBase: number of arguments should be 2");
+//        if(globalBase != -1 && nargs != 1)
+//            throw new ParseException("fromBase: number of arguments should be 1");
         // find the base
         int base=globalBase;
         if(globalBase == -1) {
@@ -51,7 +51,7 @@ public class FromBase extends PostfixMathCommand {
 	        if(rhs instanceof Number)
 	            base = ((Number) rhs).intValue();
 	        else
-	            throw new ParseException("toBase: second argument should be an integer");
+	            throw new ParseException("fromBase: second argument should be an integer");
         }
         Object lhs = s.pop();
         if(lhs instanceof String) {

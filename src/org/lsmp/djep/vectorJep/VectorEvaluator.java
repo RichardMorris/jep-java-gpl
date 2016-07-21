@@ -51,7 +51,7 @@ public class VectorEvaluator extends EvaluatorVisitor {
 			stack.push(value);
 			return value;
 		}
-		if (debug == true) {
+		if (debug) {
 			System.out.println(
 				"Stack size before childrenAccept: " + stack.size());
 		}
@@ -60,7 +60,7 @@ public class VectorEvaluator extends EvaluatorVisitor {
 
 		data = node.childrenAccept(this, data);
 
-		if (debug == true) {
+		if (debug) {
 			System.out.println(
 				"Stack size after childrenAccept: " + stack.size());
 		}
@@ -95,7 +95,7 @@ public class VectorEvaluator extends EvaluatorVisitor {
 					if(!(val instanceof MatrixValueI))
 						throw new ParseException("All arguments of function must be same dimension");
 					args[i]=(MatrixValueI) val;
-					if(!lastDim.equals(args[i].getDim()))
+					if(!lastDim.equalsDim(args[i].getDim()))
 						throw new ParseException("All arguments of function must be same dimension");
 				}
 				MatrixValueI res = Tensor.getInstance(lastDim);
@@ -111,7 +111,7 @@ public class VectorEvaluator extends EvaluatorVisitor {
 			else pfmc.run(stack);
 		}
 
-		if (debug == true) {
+		if (debug) {
 			System.out.println("Stack size after run: " + stack.size());
 		}
 

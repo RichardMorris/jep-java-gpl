@@ -12,6 +12,7 @@ import org.nfunk.jep.type.*;
  * Created on 09-Mar-2004
  */
 public class Polynomial extends Number {
+	private static final long serialVersionUID = 1L;
 	private RingI baseRing;
 	private String symbol;
 	private Number coeffs[];
@@ -22,7 +23,7 @@ public class Polynomial extends Number {
 	 * 
 	 * @param baseRing the underlying ring of the polynomial.
 	 * @param symbol the symbol used to display the polynomial
-	 * @param coeffs an array of coeficients in the base ring coeff[0] is constant, coeff[1] is coefficient of t etc.
+	 * @param coeffs an array of coefficients in the base ring coeff[0] is constant, coeff[1] is coefficient of t etc.
 	 */
 	public Polynomial(RingI baseRing,String symbol,Number coeffs[]) {
 		this.baseRing = baseRing;
@@ -45,14 +46,14 @@ public class Polynomial extends Number {
 	}
 
 	/** Sub classes can change the coefficients. Other methods
-	 * should treat polynomials as imutable. */
+	 * should treat polynomials as immutable. */
 	protected void setCoeffs(Number coeffs[])
 	{
 		this.coeffs = coeffs;
 		this.degree = coeffs.length-1;
 	}
 	/** Factory method to create a polynomial with the given coefficients.
-	 * Sub classes should overwrite this method to costruct objects of the correct type. */
+	 * Sub classes should overwrite this method to construct objects of the correct type. */
 	protected Polynomial valueOf(Number lcoeffs[])
 	{
 		Polynomial p = new Polynomial(baseRing,symbol,lcoeffs);
@@ -129,13 +130,13 @@ public class Polynomial extends Number {
 
 		Polynomial res = valueOf(new Number[]{baseRing.getONE()});
 		Polynomial currentPower = this;
-		
-		while(exp != 0)
+		int ex=exp;
+		while(ex != 0)
 		{
-			if((exp & 1) == 1)
+			if((ex & 1) == 1)
 				res = res.mul(currentPower);
-			exp >>= 1;
-			if(exp == 0) break;
+			ex >>= 1;
+			if(ex == 0) break;
 			currentPower = currentPower.mul(currentPower);
 		}
 		return res;
@@ -224,7 +225,7 @@ public class Polynomial extends Number {
 		if( coeffs.length > 1) return false;
 		return baseRing.isConstantPoly(coeffs[0]);
 	}
-	public boolean equals(Polynomial n)
+	public boolean equalsPoly(Polynomial n)
 	{
 		if(this.getDegree()!=n.getDegree()) return false;
 		for(int i=0;i<=this.getDegree();++i)

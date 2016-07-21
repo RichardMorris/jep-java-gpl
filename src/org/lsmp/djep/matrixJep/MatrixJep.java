@@ -3,15 +3,35 @@
  */
 package org.lsmp.djep.matrixJep;
 
-import org.lsmp.djep.djep.*;
-import org.lsmp.djep.djep.diffRules.*;
-import org.nfunk.jep.*;
+import org.lsmp.djep.djep.DJep;
+import org.lsmp.djep.djep.DSymbolTable;
+import org.lsmp.djep.djep.diffRules.MultiplyDiffRule;
+import org.lsmp.djep.djep.diffRules.PassThroughDiffRule;
+import org.lsmp.djep.matrixJep.function.MDiff;
+import org.lsmp.djep.matrixJep.function.MIf;
+import org.lsmp.djep.matrixJep.function.MMap;
+import org.lsmp.djep.matrixJep.function.MSum;
+import org.lsmp.djep.matrixJep.nodeTypes.MatrixNodeI;
+import org.lsmp.djep.vectorJep.function.Determinant;
+import org.lsmp.djep.vectorJep.function.Diagonal;
+import org.lsmp.djep.vectorJep.function.GetDiagonal;
+import org.lsmp.djep.vectorJep.function.Length;
+import org.lsmp.djep.vectorJep.function.Size;
+import org.lsmp.djep.vectorJep.function.Trace;
+import org.lsmp.djep.vectorJep.function.Transpose;
+import org.lsmp.djep.vectorJep.function.VEle;
+import org.lsmp.djep.vectorJep.function.VSum;
+import org.lsmp.djep.vectorJep.values.Scaler;
+import org.lsmp.djep.xjep.MacroFunction;
+import org.lsmp.djep.xjep.PrintVisitor;
+import org.lsmp.djep.xjep.XJep;
+import org.nfunk.jep.EvaluatorI;
+import org.nfunk.jep.Node;
+import org.nfunk.jep.Operator;
+import org.nfunk.jep.ParseException;
+import org.nfunk.jep.ParserConstants;
+import org.nfunk.jep.SymbolTable;
 import org.nfunk.jep.function.Power;
-import org.lsmp.djep.vectorJep.values.*;
-import org.lsmp.djep.vectorJep.function.*;
-import org.lsmp.djep.xjep.*;
-import org.lsmp.djep.matrixJep.function.*;
-import org.lsmp.djep.matrixJep.nodeTypes.*;
 /**
  * An extension of JEP which allows advanced vector and matrix handling and differentation.
  *
@@ -25,10 +45,13 @@ public class MatrixJep extends DJep {
 	protected MatrixEvaluator mev = new MatrixEvaluator();
 	
 	public MatrixJep() {
-		super();
-		nf = new MatrixNodeFactory(this);
+		super(new MatrixOperatorSet());
+		construct();
+	}
+
+    void construct() {
+        nf = new MatrixNodeFactory(this);
 		symTab = new DSymbolTable(mvf);
-		opSet = new MatrixOperatorSet();
 		this.parser.setInitialTokenManagerState(ParserConstants.NO_DOT_IN_IDENTIFIERS);
 
 		Operator tens = ((MatrixOperatorSet) opSet).getMList();
@@ -38,14 +61,33 @@ public class MatrixJep extends DJep {
 
 		addDiffRule(new PassThroughDiffRule(tens.getName(),tens.getPFMC()));
 		Operator cross = ((MatrixOperatorSet) opSet).getCross();
-		addDiffRule(new MultiplyDiffRule(cross.getName(),cross));
+		addDiffRule(new MultiplyDiffRule(cross));
 		Operator dot = ((MatrixOperatorSet) opSet).getDot();
-		addDiffRule(new MultiplyDiffRule(dot.getName(),dot));
+		addDiffRule(new MultiplyDiffRule(dot));
+    }
+	
+	protected MatrixJep(MatrixJep j)
+	{
+		super(j);
+		construct();
 	}
+
 
 	public void addStandardFunctions()
 	{
 		super.addStandardFunctions();
+		try {
+			this.getFunctionTable().remove("sec");
+			MacroFunction sec = new MatrixMacroFunction("sec",1,"1/cos(x)",this);
+			addFunction("sec",sec);
+			this.getFunctionTable().remove("cosec");
+			MacroFunction cosec = new MatrixMacroFunction("cosec",1,"1/sin(x)",this);
+			addFunction("cosec",cosec);
+			this.getFunctionTable().remove("cot");
+			MacroFunction cot = new MatrixMacroFunction("cot",1,"1/tan(x)",this);
+			addFunction("cot",cot);
+			} catch (ParseException e) {System.err.println(e.getMessage());}
+
 		addFunction("pow",new Power());
 		this.getFunctionTable().remove("if");
 		addFunction("if",new MIf());
@@ -112,5 +154,12 @@ public class MatrixJep extends DJep {
 		return mev;
 	}
 	
+	public XJep newInstance(SymbolTable st)
+	{
+		MatrixJep newJep = new MatrixJep(this);
+		newJep.symTab = st;
+		return newJep;
+	}
+
 	
 }

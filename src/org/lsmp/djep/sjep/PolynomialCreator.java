@@ -172,7 +172,7 @@ public class PolynomialCreator extends DoNothingVisitor {
 		PNodeI exp1 = poly1.expand();
 		PNodeI poly2 = createPoly(node2);
 		PNodeI exp2 = poly2.expand();
-		return exp1.equals(exp2);
+		return exp1.equalsPNode(exp2);
 	}
 
 	public Object visit(ASTConstant node, Object data) throws ParseException {
@@ -191,10 +191,6 @@ public class PolynomialCreator extends DoNothingVisitor {
 			args[i] = (PNodeI) node.jjtGetChild(i).jjtAccept(this,data);
 		}
 
-/*		jep.println(node);
-		for(int i=0;i<nChild;++i)
-			System.out.println("\t"+args[i].toString());
-*/		
 		XOperator op = (XOperator) node.getOperator();
 		if(op == os.getAdd())
 		{
@@ -205,7 +201,7 @@ public class PolynomialCreator extends DoNothingVisitor {
 		}
 		else if(op == os.getSubtract())
 		{
-			if(args.length!=2) throw new ParseException("Subtract must have two args it has "+args.length);
+			if(args.length!=2) throw new ParseException("Subtract must have two arguments it has "+args.length);
 			return args[0].sub(args[1]);
 		}
 		else if(op == os.getUMinus())
@@ -222,12 +218,12 @@ public class PolynomialCreator extends DoNothingVisitor {
 		}
 		else if(op == os.getDivide())
 		{
-			if(args.length!=2) throw new ParseException("Divide must have two args it has "+args.length);
+			if(args.length!=2) throw new ParseException("Divide must have two arguments it has "+args.length);
 			return args[0].div(args[1]);
 		}
 		else if(op == os.getPower())
 		{
-			if(args.length!=2) throw new ParseException("Power must have two args it has "+args.length);
+			if(args.length!=2) throw new ParseException("Power must have two arguments it has "+args.length);
 			return args[0].pow(args[1]);
 		}
 		
@@ -262,38 +258,38 @@ public class PolynomialCreator extends DoNothingVisitor {
 		//throw new ParseException("Polynomial: Sorry don't know how to convert "+node.getName());
 	}
 
-	Object add(Object a,Object b) throws ParseException {
+	final Object add(Object a,Object b) throws ParseException {
 		return ((Add) os.getAdd().getPFMC()).add(a,b);
 	}
 	
-	Object sub(Object a,Object b) throws ParseException {
+	final Object sub(Object a,Object b) throws ParseException {
 		return ((Subtract) os.getSubtract().getPFMC()).sub(a,b);
 	}
 
 
-	Object mul(Object a,Object b) throws ParseException {
+	final Object mul(Object a,Object b) throws ParseException {
 		return ((Multiply) os.getMultiply().getPFMC()).mul(a,b);
 	}
 	
-	Object div(Object a,Object b) throws ParseException {
+	final Object div(Object a,Object b) throws ParseException {
 		return ((Divide) os.getDivide().getPFMC()).div(a,b);
 	}
 
-	Object intToValue(int i)
-	{
-		return new Double(i);	
-	}
-	Object raise(Object a,Object b) throws ParseException 
+//	Object intToValue(int i)
+//	{
+//		return new Double(i);	
+//	}
+	final Object raise(Object a,Object b) throws ParseException 
 	{
 		return 
 		((Power) os.getPower().getPFMC()).power(a,b);
 	}
 
-	Object neg(Object val) throws ParseException {	
+	final Object neg(Object val) throws ParseException {	
 		return ((UMinus) os.getUMinus().getPFMC()).umin(val);
 	}
 
-	int cmp(Object a,Object b) throws ParseException {
+	final int cmp(Object a,Object b) throws ParseException {
 		if(a.equals(b)) return 0;
 		
 		if(a instanceof Complex)

@@ -36,7 +36,7 @@ public class FunctionPlotter extends Applet {
 
 	/**
 	 * Sets the layout of the applet window to BorderLayout, creates all
-	 * the components and associates them with event listeners if neccessary.
+	 * the components and associates them with event listeners if necessary.
 	 */
 	private void initComponents () {
 		setLayout(new BorderLayout());
@@ -44,7 +44,9 @@ public class FunctionPlotter extends Applet {
 
 		// get the initial expression from the parameters
 		String expr = getParameter("initialExpression");
-		
+		// set default expression if none specified
+		if (expr==null)
+			expr="x^2";
 		// write the expression into the text field
 		if (expr!=null)
 			exprField = new java.awt.TextField(expr);

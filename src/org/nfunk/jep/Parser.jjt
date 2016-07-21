@@ -106,7 +106,7 @@ public class Parser {
 	public void restart(java.io.Reader stream, JEP jep_in)
 	{
 		ReInit(stream);
-   		this.token_source.SwitchTo(initialTokenManagerState);
+   		//this.token_source.SwitchTo(initialTokenManagerState);
 		jep = jep_in;
 		symTab = jep.getSymbolTable();
 		opSet = jep.getOperatorSet();
@@ -156,6 +156,7 @@ public class Parser {
 	public void setInitialTokenManagerState(int state)
 	{
 		initialTokenManagerState = state;
+		token_source.defaultLexState = state;
 	}
 	/**
 	 * Translate all escape sequences to characters. Inspired by Rob Millar's

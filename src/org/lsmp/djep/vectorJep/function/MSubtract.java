@@ -13,10 +13,10 @@ import org.nfunk.jep.function.Subtract;
  */
 public class MSubtract extends Subtract implements BinaryOperatorI {
 
-	public Dimensions calcDim(Dimensions ldim,Dimensions rdim)
+	public Dimensions calcDim(Dimensions ldim,Dimensions rdim) throws ParseException
 	{
-		if(ldim.equals(rdim)) return ldim;
-		return null;
+		if(ldim.equalsDim(rdim)) return ldim;
+		throw new ParseException("Dimensions do not match "+ldim+" "+rdim);
 	}
 
 	/** calculates the value.

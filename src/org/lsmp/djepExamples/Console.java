@@ -100,6 +100,12 @@ public class Console extends Applet implements KeyListener {
 	/** Text area for user input in applets. */
 	protected TextArea ta = null;
 		
+	/** Whether to suppress current output */
+	protected boolean quiet = false;
+	
+	/** The history of commands */
+	protected Vector commandHist = new Vector();
+	
 	/** Constructor */
 	public Console() {
 		br = new BufferedReader(new InputStreamReader(System.in));
@@ -184,6 +190,9 @@ public class Console extends Applet implements KeyListener {
 	 */
 	public boolean processCommand(String command) 
 	{	
+		if(command.length()==0) return true;
+		quiet = false;
+		commandHist.add(command);
 		if(command.equals("quit") || command.equals("exit"))
 			return false;
 
@@ -206,19 +215,36 @@ public class Console extends Applet implements KeyListener {
 			printVars();
 			return true;
 		}
+		if(command.equals("history"))	{
+			printHistory();
+			return true;
+		}
 		if(!testSpecialCommands(command)) return true;
-			
+		boolean res = true;
+		quiet = (command.charAt(0)=='\'');
+		if(quiet)
+			command = command.substring(1);
 		try {
 			Node n = j.parse(command);
 			processEquation(n);
 		}
-		catch(Exception e) { return handleError(e); }
-		
-		return true;
+		catch(Exception e) { res = handleError(e); }
+		quiet = false;
+		return res;
 	}
 
 
 	
+	private void printHistory() {
+		Enumeration en = commandHist.elements();
+		int i=0;
+		while(en.hasMoreElements()) {
+			println(""+i+"\t"+en.nextElement());
+			++i;
+		}
+		
+	}
+
 	/** Performs the required operation on a node. 
 	 * Typically evaluates the node and prints the value.
 	 * 
@@ -271,6 +297,8 @@ public class Console extends Applet implements KeyListener {
 		println("'functions' lists defined functions"); 
 		println("'operators' lists defined operators"); 
 		println("'variables' lists variables and constants"); 
+		println("'history' prints the history of commands"); 
+		println("Output is suppressed if line starts with '"); 
 	}
 
 	/** Prints introductory text. */
@@ -363,6 +391,7 @@ public class Console extends Applet implements KeyListener {
 	 */
 	public void print(Object o)
 	{
+		if(quiet) return;
 		String s=null;
 		if(o == null) s = "null";
 		else s = o.toString();
@@ -379,6 +408,7 @@ public class Console extends Applet implements KeyListener {
 	 */
 	public void println(Object o)
 	{
+		if(quiet) return;
 		String s=null;
 		if(o == null) s = "null";
 		else s = o.toString();

@@ -57,29 +57,41 @@ public class PrintVisitor extends ErrorCatchingVisitor
   {
 	sb = new StringBuffer();
 	acceptCatchingErrors(node,null);
-	if(maxLen == -1)
-		out.print(sb);
-	else
-	{
-		while(true)	{
-			if(sb.length() < maxLen) {
-				out.print(sb);
-				return;
-			}
-			int pos = maxLen-2;
-			for(int i=maxLen-2;i>=0;--i) {
-				char c = sb.charAt(i);
-				if(c == '+' || c == '-' || c == '*' || c == '/'){
-					pos = i; break;
-				}
-			}
-			//out.println("<"+sb.substring(0,pos+10)+">");
-			out.println(sb.substring(0,pos+1));
-			sb.delete(0,pos+1);
-		}
-	}
+	printWrap(sb,out);
   }
 
+  /**
+   * Utility method to print a wrapped version of the output.
+   * Each line will be a maximum of maxLen characters wide
+   * with lines broken on  
+   * @param sb the StringBuffer to print
+   * @param out the output stream
+   */
+  public void printWrap(StringBuffer sb,PrintStream out) {
+		if(maxLen == -1)
+			out.print(sb);
+		else
+		{
+			while(true)	{
+				if(sb.length() < maxLen) {
+					out.print(sb);
+					return;
+				}
+				int pos = maxLen-2;
+				for(int i=maxLen-2;i>=0;--i) {
+					char c = sb.charAt(i);
+					if(!(Character.isLetterOrDigit(c) || c=='_' || c =='.')) {
+					//if(c == '+' || c == '-' || c == '*' || c == '/' || c==',' || c=='[' || c ==']' || c =='(' || c ==')' ){
+						pos = i; break;
+					}
+				}
+				//out.println("<"+sb.substring(0,pos+10)+">");
+				out.println(sb.substring(0,pos+1));
+				sb.delete(0,pos+1);
+			}
+		}
+	  
+  }
   /** Prints on System.out. */
   public void print(Node node) { print(node,System.out); }
     
@@ -163,12 +175,15 @@ public class PrintVisitor extends ErrorCatchingVisitor
 		Node rhs = node.jjtGetChild(0);
 	
 		// now print the node
-		sb.append(node.getOperator().getSymbol());
+		if(((XOperator) node.getOperator()).isPrefix())
+			sb.append(node.getOperator().getSymbol());
 		// now the rhs
 		if(rhs instanceof ASTFunNode && ((ASTFunNode) rhs).isOperator())
 			printBrackets(rhs);	// -(-3) -(1+2) or !(-3)
 		else
 			printNoBrackets(rhs);
+		if(((XOperator) node.getOperator()).isSuffix())
+			sb.append(node.getOperator().getSymbol());
 		
 		return data;
 	}
@@ -419,9 +434,8 @@ public class PrintVisitor extends ErrorCatchingVisitor
 	 * @param flag whether to switch this mode on or off
 	 */
 	public void setMode(int mode,boolean flag) {
-		if(flag)
-			this.mode |= mode;
-		else
+		this.mode |= mode;
+		if(!flag)
 			this.mode ^= mode;
 	}
 	/** The NumberFormat object used to print numbers. */

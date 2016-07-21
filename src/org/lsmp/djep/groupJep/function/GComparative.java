@@ -114,7 +114,7 @@ public class GComparative extends PostfixMathCommand
 			}
 			inStack.push(flag ? Boolean.TRUE : Boolean.FALSE);//push the result on the inStack
 		}
-		else throw new ParseException("Invalid parameters for comparitive op");
+		else throw new ParseException("Invalid parameters for comparative op");
 			
 	}
 }

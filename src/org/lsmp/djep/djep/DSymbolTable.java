@@ -24,9 +24,11 @@ public class DSymbolTable extends XSymbolTable {
 	}
 
 	/** Creates a new SymbolTable with the same variable factory as this. */
-	public SymbolTable newInstance()
+	public XSymbolTable newInstance()
 	{
-		return new DSymbolTable(this.getVariableFactory());
+		DSymbolTable st = new DSymbolTable(this.getVariableFactory());
+		st.copyConstants(this);
+		return st;
 	}
 
 	public PartialDerivative getPartialDeriv(String name,String dnames[])

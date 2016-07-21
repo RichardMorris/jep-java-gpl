@@ -3,6 +3,9 @@
  */
 package org.lsmp.djep.vectorJep;
 
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+
 
 /**
  * A class to represent a set of dimensions.
@@ -12,8 +15,9 @@ package org.lsmp.djep.vectorJep;
  * @author rich
  * Created on 25-Oct-2003
  */
-public class Dimensions
+public class Dimensions implements Serializable
 {
+	private static final long serialVersionUID = 4492131381699627649L;
 	private int dims[];
 	public static final Dimensions UNKNOWN = new Dimensions(-1);
 	public static final Dimensions ONE = new Dimensions(1);
@@ -128,7 +132,7 @@ public class Dimensions
 	}
 
 	/** Two dimensions are equal if the element of dims are the same. */
-	public boolean equals(Dimensions dims2)
+	public boolean equalsDim(Dimensions dims2)
 	{
 		if(dims2 == null) return false;
 		if( dims.length != dims2.dims.length) return false;
@@ -151,8 +155,17 @@ public class Dimensions
 	public boolean equals(Object arg)
 	{
 		if(arg == null) return false;
-		if(arg instanceof Dimensions) return equals((Dimensions) arg);
+		if(arg instanceof Dimensions) return equalsDim((Dimensions) arg);
 		return false;
 	}
 
+	private Object readResolve() throws ObjectStreamException {
+		if(this.dims.length == 1)
+		{
+			if(this.dims[0]==1) return ONE;
+			else if(this.dims[0]==2) return TWO;
+			else if(this.dims[0]==3) return THREE;
+		}
+		return this;
+	}
 }

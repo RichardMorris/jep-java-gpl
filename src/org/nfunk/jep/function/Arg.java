@@ -19,7 +19,8 @@ import org.nfunk.jep.type.*;
  */
 public class Arg extends PostfixMathCommand
 {
-	private static final Double ONE = new Double(1.0);
+	private static final Double ZERO = new Double(0.0);
+	private static final Double PI = new Double(Math.PI);
 	public Arg()
 	{
 		numberOfParameters = 1;
@@ -39,7 +40,10 @@ public class Arg extends PostfixMathCommand
 					return new Double(((Complex)param).arg());
 				}
 		else if (param instanceof Number) {
-			return (ONE);
+		    if(((Number)param).doubleValue()>=0)
+			return (ZERO);
+		    else
+			return (PI);
 		} 
 		throw new ParseException("Invalid parameter type");
 	}

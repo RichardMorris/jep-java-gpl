@@ -38,6 +38,7 @@ public class VectorExample {
 		doStuff("y=[[1,2],[3,4]]");       // Value: [[1.0,2.0],[3.0,4.0]]
 		doStuff("y * y");                 // Value: [[7.0,10.0],[15.0,22.0]]
 		doStuff("ele(y,[1,2])");          // Value: 2.0
+		doStuff("Map(x^2,x,[1,2,3])");
 	}
 
 	public static void doStuff(String str)	{

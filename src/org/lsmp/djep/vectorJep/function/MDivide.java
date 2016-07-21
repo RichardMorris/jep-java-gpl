@@ -2,20 +2,25 @@
  * Created on 27-Jul-2003
  */
 package org.lsmp.djep.vectorJep.function;
-import org.lsmp.djep.vectorJep.*;
-import org.lsmp.djep.vectorJep.values.*;
-import org.nfunk.jep.*;
-import org.nfunk.jep.function.*;
-import java.util.*;
+import java.util.Stack;
+
+import org.lsmp.djep.vectorJep.Dimensions;
+import org.lsmp.djep.vectorJep.values.MatrixValueI;
+import org.lsmp.djep.vectorJep.values.Scaler;
+import org.lsmp.djep.vectorJep.values.Tensor;
+import org.nfunk.jep.ParseException;
+import org.nfunk.jep.function.Add;
+import org.nfunk.jep.function.Divide;
+import org.nfunk.jep.function.Subtract;
 
 /**
- * An extension of the Multiply to with vectors and matricies.
+ * An extension of the Multiply to with vectors and matrices.
  * Must faster (1/3) if used with MatrixJep and calcValue routines.
  * Note vector * vector treated as col_vec * row_vec -> matrix.
  *  
  * @author Rich Morris
  * Created on 27-Jul-2003
- * TODO add handeling of tensors
+ * TODO add handling of tensors
  * @since 2.3.2 Improved error reporting
  */
 public class MDivide extends Divide implements BinaryOperatorI {
@@ -30,9 +35,7 @@ public class MDivide extends Divide implements BinaryOperatorI {
 		numberOfParameters = 2;
 	}
 
-	/**
-	 *  need to redo this as the standard jep version assumes commutivity.
-	 */	
+	//@SuppressWarnings("unchecked")
 	public void run(Stack stack) throws ParseException 
 	{
 		checkStack(stack); // check the stack
@@ -45,7 +48,7 @@ public class MDivide extends Divide implements BinaryOperatorI {
 	}
 
 	/**
-	 * Multiply two objects.
+	 * Divide two objects.
 	 */
 
 	public Object div(Object param1, Object param2) throws ParseException 
@@ -74,10 +77,10 @@ public class MDivide extends Divide implements BinaryOperatorI {
 	}
 		
 	/**
-	 * Multiply two objects.
+	 * Divide two objects.
 	 */
 
-	public Object mul(MatrixValueI param1, MatrixValueI param2) throws ParseException 
+	public Object div(MatrixValueI param1, MatrixValueI param2) throws ParseException 
 	{
 		Dimensions dims = this.calcDim(param1.getDim(),param2.getDim());
 		MatrixValueI res = Tensor.getInstance(dims);
@@ -86,8 +89,19 @@ public class MDivide extends Divide implements BinaryOperatorI {
 
 	public Dimensions calcDim(Dimensions l,Dimensions r) throws ParseException
 	{
-		int rrank = r.rank();
-		if(rrank!=0) throw new ParseException("MDivide: right hand side must be a scaler. It has dimension "+r.toString());
+	       int lrank = l.rank();
+	       int rrank = r.rank();
+	        
+	        if(lrank ==1 && rrank ==1)
+	        {
+	                if(  ( l.getFirstDim() == 2 || l.getFirstDim() == 3) 
+	                  && ( r.getFirstDim() == 2 || r.getFirstDim() == 3) )
+	                    return Dimensions.TWO;
+	        }
+
+	    
+		if(rrank!=0) 
+		    throw new ParseException("CD MDivide: right hand side must be a scaler. It has dimension "+r.toString());
 		return l;
 	}
 
@@ -98,7 +112,7 @@ public class MDivide extends Divide implements BinaryOperatorI {
 			for(int i=0;i<param1.getDim().numEles();++i)
 				res.setEle(i,super.div(param1.getEle(i),param2.getEle(0)));
 		}
-		else throw new ParseException("MDivide: right hand side must be a scaler. It has dimension "+param2.getDim().toString());
+		else throw new ParseException("CV MDivide: right hand side must be a scaler. It has dimension "+param2.getDim().toString());
 		return res;
 	}
 }

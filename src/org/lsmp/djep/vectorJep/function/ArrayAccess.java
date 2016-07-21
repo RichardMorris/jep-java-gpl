@@ -56,7 +56,7 @@ public class ArrayAccess extends VEle implements LValueI {
 			else if(indicies instanceof MVector)
 			{
 				MVector vec = (MVector) indicies;
-				if(vec.getDim().equals(Dimensions.ONE))
+				if(vec.getDim().equalsDim(Dimensions.ONE))
 				{
 					int d1 = ((Number) vec.getEle(0)).intValue();
 					if(d1<1 || d1 > ((MVector) varVal).getNumEles())
@@ -72,7 +72,7 @@ public class ArrayAccess extends VEle implements LValueI {
 			if(indicies instanceof MVector)
 			{
 				MVector vec = (MVector) indicies;
-				if(vec.getDim().equals(Dimensions.TWO))
+				if(vec.getDim().equalsDim(Dimensions.TWO))
 				{
 					int d1 = ((Number) vec.getEle(0)).intValue();
 					int d2 = ((Number) vec.getEle(1)).intValue();

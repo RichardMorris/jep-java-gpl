@@ -22,7 +22,7 @@ public class POperator extends AbstractPNode {
 		this.args = args;
 	}
 	
-	public boolean equals(PNodeI node)
+	public boolean equalsPNode(PNodeI node)
 	{
 		if(!(node instanceof POperator)) return false;
 		POperator nodeOp = (POperator) node;
@@ -30,7 +30,7 @@ public class POperator extends AbstractPNode {
 		if(args.length != nodeOp.args.length)
 			return false;
 		for(int i=0;i<args.length;++i)
-			if(!args[i].equals(nodeOp.args[i])) return false;
+			if(!args[i].equalsPNode(nodeOp.args[i])) return false;
 		return true;
 	}
 

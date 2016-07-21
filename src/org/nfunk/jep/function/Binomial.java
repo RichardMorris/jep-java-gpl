@@ -24,15 +24,15 @@ import org.nfunk.jep.ParseException;
  */
 public class Binomial extends PostfixMathCommand
 {
-	static final int initN = 20;
-	static int[][] coeffs = new int[initN+1][];
+	static final int INITIAL_N = 20;
+	static int[][] coeffs = new int[INITIAL_N+1][];
 	/** Static initialiser for binomial coeffs */
 	{
 		coeffs[0] = new int[1];
 		coeffs[0][0] = 1;
 		coeffs[1] = new int[2];
 		coeffs[1][0] = 1; coeffs[1][1] = 1;
-		for(int n=2;n<=initN;++n)
+		for(int n=2;n<=INITIAL_N;++n)
 		{
 			coeffs[n] = new int[n+1];
 			coeffs[n][0] = 1;

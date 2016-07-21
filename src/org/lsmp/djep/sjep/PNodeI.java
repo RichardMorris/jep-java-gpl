@@ -26,7 +26,7 @@ public interface PNodeI {
 	/** inverts node i.e. 1/x */
 	public PNodeI invert() throws ParseException;
 	/** True is nodes represent the same parse trees */
-	public boolean equals(PNodeI node);
+	public boolean equalsPNode(PNodeI node);
 	/** True is nodes represent the same parse trees */
 	public boolean equals(Object o);
 	/** Compares this expression to argument. Uses a total ordering of expressions. Returns positive if this node comes after the argument. */
@@ -35,6 +35,7 @@ public interface PNodeI {
 	public Node toNode() throws ParseException;
 	/** Produces a string representation of the argument. */
 	public String toString();
+	 
 	/** True if node represents zero */
 	public boolean isZero();
 	/** True if node represents one */

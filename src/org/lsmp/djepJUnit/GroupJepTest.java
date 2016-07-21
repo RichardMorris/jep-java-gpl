@@ -93,6 +93,17 @@ public class GroupJepTest extends TestCase {
 		valueToStringTest("(1/2)-(1/3)","1/6");
 	}
 	
+	public void testR() throws Exception
+	{
+		j = new GroupJep(new BigReals(6));
+		System.out.println(j.getGroup().toString());
+		j.addVariable("v0", new BigDecimal(0.9999)); 
+		j.addVariable("v1", new BigDecimal(0.9999)); 
+		String str="-3934723431860303161971897591638553630535421897944412671955566929858*v0*v1";
+		Node node = j.parse(str);
+		Object res = j.evaluate(node);
+		System.out.println(res);
+	}
 	/** Tests Quaternions */
 	public void testQuartonians() throws Exception
 	{
@@ -288,7 +299,7 @@ public class GroupJepTest extends TestCase {
 	public void testPolynomialCreator() throws Exception
 	{
 		RingI ring = new Reals();
-		FreeGroup fg = new FreeGroup(ring,"x");
+		ExtendedFreeGroup fg = new ExtendedFreeGroup(ring,"x");
 
 		JEP j2 = new JEP();
 		j2.addStandardConstants();

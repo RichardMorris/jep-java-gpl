@@ -107,13 +107,13 @@ public class Polynomial extends AbstractPNode {
 		return super.div(node);
 	}
 	
-	public boolean equals(PNodeI node)
+	public boolean equalsPNode(PNodeI node)
 	{
 		if(!(node instanceof Polynomial)) return false;
 		Polynomial p = (Polynomial) node;
 		if(terms.length != (p.terms.length)) return false;
 		for(int i=0;i<terms.length;++i)
-			if(!terms[i].equals(p.terms[i])) return false;
+			if(!terms[i].equalsPNode(p.terms[i])) return false;
 		return true; 
 	}
 	/**
@@ -168,10 +168,59 @@ public class Polynomial extends AbstractPNode {
 		if(terms.length==0)
 			return pc.nf.buildConstantNode(pc.zero);
 		Node args[] = new Node[terms.length];
-		for(int i=0;i<terms.length;++i)
+		int signs[] = new int[terms.length];
+		int nNeg = 0;
+		for(int i=0;i<terms.length;++i) {
+		    signs[i]=1;
+		    if(terms[i] instanceof Monomial) {
+			if(((Monomial) terms[i]).getCoeff().isNegative()) {
+			    signs[i] = -1;
+			    ++nNeg;
+			    args[i] = terms[i].negate().toNode();
+			}
+			else
+			    args[i] = terms[i].toNode();
+			    
+		    }
+		    else
 			args[i] = terms[i].toNode();
-		if(terms.length ==1) return args[0];
-		return pc.nf.buildOperatorNode(pc.os.getAdd(),args);	
+		}
+		if(nNeg==0) {
+			if(terms.length ==1) 
+			    if(nNeg==0) return args[0];
+			return pc.nf.buildOperatorNode(pc.os.getAdd(),args);	
+		    
+		}
+		if(terms.length ==1) 
+		    return pc.nf.buildOperatorNode(pc.os.getUMinus(),args[0]);
+
+		if(terms.length==nNeg) {
+		    Node n1 = pc.nf.buildOperatorNode(pc.os.getUMinus(),args[0]);
+		    for(int i=1;i<terms.length;++i) {
+			n1 = pc.nf.buildOperatorNode(pc.os.getSubtract(),n1,args[i]);
+		    }
+		    return n1;
+		}
+
+		Node posargs[] = new Node[terms.length-nNeg];
+		Node negargs[] = new Node[nNeg];
+		int posCount=0;
+		int negCount=0;
+		for(int i=0;i<terms.length;++i) {
+		    if(signs[i]>0)
+			posargs[posCount++] = args[i];
+		    else
+			negargs[negCount++]=args[i];
+		}
+		Node n1;
+		if(posCount==1) 
+		    n1 = posargs[0];
+		else
+		    n1 = pc.nf.buildOperatorNode(pc.os.getAdd(),posargs);
+		
+		for(int i=0;i<negCount;++i)
+		    n1 = pc.nf.buildOperatorNode(pc.os.getSubtract(),n1,negargs[i]);	    
+		return n1;	
 	}
 	
 	public PNodeI expand() throws ParseException {

@@ -6,8 +6,13 @@
 package org.nfunk.jep;
 
 /**
+ * Defines a method which can be used to evaluate a part of a node-tree. 
+ * It is passed to classes which use CallbackEvaluatorI 
+ * which need greater control over how they are evaluated.
+ * 
  * @author Rich Morris
  * Created on 22-Apr-2005
+ * @see org.nfunk.function.CallbackEvaluationI
  */
 public interface EvaluatorI {
 	

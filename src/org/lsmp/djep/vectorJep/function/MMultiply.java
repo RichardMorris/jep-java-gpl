@@ -2,11 +2,18 @@
  * Created on 27-Jul-2003
  */
 package org.lsmp.djep.vectorJep.function;
-import org.lsmp.djep.vectorJep.*;
-import org.lsmp.djep.vectorJep.values.*;
-import org.nfunk.jep.*;
-import org.nfunk.jep.function.*;
-import java.util.*;
+import java.util.Stack;
+
+import org.lsmp.djep.vectorJep.Dimensions;
+import org.lsmp.djep.vectorJep.values.MVector;
+import org.lsmp.djep.vectorJep.values.Matrix;
+import org.lsmp.djep.vectorJep.values.MatrixValueI;
+import org.lsmp.djep.vectorJep.values.Scaler;
+import org.lsmp.djep.vectorJep.values.Tensor;
+import org.nfunk.jep.ParseException;
+import org.nfunk.jep.function.Add;
+import org.nfunk.jep.function.Multiply;
+import org.nfunk.jep.function.Subtract;
 
 /**
  * An extension of the Multiply to with vectors and matricies.
@@ -101,7 +108,11 @@ public class MMultiply extends Multiply implements BinaryOperatorI {
 			{
 			case 0: // Vector * Scaler -> Vector
 				return l;
-			case 1: // Vector * Vector -> Matrix
+			case 1: // Complex * Complex -> Complex
+                if(  ( l.getFirstDim() == 2 || l.getFirstDim() == 3) 
+                        && ( r.getFirstDim() == 2 || r.getFirstDim() == 3) )
+                          return Dimensions.TWO;
+                // Vector * Vector -> Matrix
 				return Dimensions.valueOf(l.getFirstDim(),r.getFirstDim());
 			case 2: // Vector * Matrix -> Vector
 				if(l.getLastDim() == r.getFirstDim())

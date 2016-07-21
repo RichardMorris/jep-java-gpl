@@ -24,6 +24,8 @@ public interface GroupI {
 	public boolean equals(Number a,Number b);
 	/** returns number given by the string */
 	public Number valueOf(String s);
+	/** returns number given by the string */
+	public Number valueOf(Number num);
 	/** returns a number factory for creating group elements from strings.
 	 * Most groups which are subclasses of {@link org.lsmp.djep.groupJep.groups.Group Group} do not need to
 	 * implement this method. */

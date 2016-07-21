@@ -58,26 +58,35 @@ public class Power extends PostfixMathCommand
 	}
 	
 
-	public Object power(Number d1, Number d2)
+	public Object power(Number d1, Number exponent)
 	{
-		int ival = d2.shortValue();
-		double dval = d2.doubleValue();
-		if (d1.doubleValue()<0 && dval != ival)
+		int exponentInt = exponent.shortValue();
+		double exponentDouble = exponent.doubleValue();
+		
+		if (d1.doubleValue()<0 && exponentDouble != exponentInt)
 		{
+			// base is negative and exponent is non-integer
 			Complex c = new Complex(d1.doubleValue(), 0.0);
-			return c.power(d2.doubleValue());
+			return c.power(exponent.doubleValue());
 		}
 		else
 		{
-			if(dval == ival)
+			// base is not negative or exponent is integer
+			if (exponentDouble == exponentInt)
 			{
-				if(dval>=0)
-					return new Double(power(d1.doubleValue(),ival));
+				// integer exponent
+				if (exponentDouble >= 0)
+					// positive exponent
+					return new Double(power(d1.doubleValue(), exponentInt));
 				else
-					return new Double(1.0/power(d1.doubleValue(),-ival));
+					// negative exponent
+					return new Double(1.0/power(d1.doubleValue(), -exponentInt));
 			}
-
-			return new Double(Math.pow(d1.doubleValue(),d2.doubleValue()));
+			else
+			{
+				// non-int exponent
+				return new Double(Math.pow(d1.doubleValue(), exponent.doubleValue()));
+			}
 		}
 	}
 	
@@ -114,7 +123,7 @@ public class Power extends PostfixMathCommand
 	
 	/**
 	 * A fast routine for computing integer powers.
-	 * Code adapted from {@link http://mindprod.com/jgloss/power.html} by Patricia Shanahan pats@acm.org
+	 * Code adapted from {@link <a href="http://mindprod.com/jgloss/power.html">efficient power</a>} by Patricia Shanahan pats@acm.org
 	 * Almost identical to the method Knuth gives on page 462 of The Art of Computer Programming Volume 2 Seminumerical Algorithms.
 	 * @param x number to be taken to a power.
 	 * @param n power to take x to. 0 <= n <= Integer.MAX_VALUE

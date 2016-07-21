@@ -107,4 +107,9 @@ public class Zn extends Group implements FieldI,
 	}
 	
 	public String toString() { return "Integers mod "+this.modulus; }
+
+	public Number valueOf(Number num) {
+		BigInteger in = BigInteger.valueOf(num.longValue());
+		return in.mod(modulus);
+	}
 }
