@@ -101,8 +101,8 @@
 
 <!--======================================================================-->
 <!-- JJTREE -->
-	<target name="jjtree" depends="init"><!-- if="javacc.present">
-		<echo message="javacc.present is true"/>-->
+	<target name="jjtree" depends="init" if="env.JAVACCHOME">
+		<echo message="javacc.present is true"/>
 		<jjtree
 			target="${src}/org/nfunk/jep/Parser.jjt"
 			outputdirectory="${src}/org/nfunk/jep/"
@@ -112,8 +112,8 @@
 
 <!--======================================================================-->
 <!-- JAVACC -->
-	<target name="javacc" depends="jjtree"><!--if="javacc.present">
-		<echo message="javacc.present is true"/>-->
+	<target name="javacc" depends="jjtree" if="env.JAVACCHOME">
+		<echo message="javacc.present is true"/>
 		<javacc
 			target="${src}/org/nfunk/jep/Parser.jj"
 			outputdirectory="${src}/org/nfunk/jep/"
