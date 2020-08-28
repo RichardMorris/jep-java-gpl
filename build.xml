@@ -190,7 +190,6 @@
 			eof="asis"
 			includes="**/*.java, **/*.html, **/*.bat, **/*.txt, **/*.xml"/>
 		<!-- Unix EOL for shell files -->
-		<mkdir dir="${bin}" />
 		<fixcrlf
 			srcdir="${bin}"
 			eol="lf"
