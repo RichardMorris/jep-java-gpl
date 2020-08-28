@@ -11,6 +11,7 @@ package org.nfunk.jep;
 
 import java.io.*;
 import java.util.*;
+
 import org.nfunk.jep.function.*;
 import org.nfunk.jep.type.*;
 
@@ -714,8 +715,18 @@ public class JEP {
 	 * @since 2.3.0 beta 1
 	 */
 	public Parser getParser() {return parser;	}
+
+	/**
+	 * Allows the SymbolTable to be set set. 
+	 * @param st new Symbol table to use
+	 */
+	public void setSymbolTable(SymbolTable st) {
+		this.symTab = st;
+	}
+
 //------------------------------------------------------------------------
 // Old code
+
 
 
 /*
