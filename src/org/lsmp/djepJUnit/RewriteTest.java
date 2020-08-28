@@ -71,7 +71,8 @@ public class RewriteTest extends DJepTest {
 	}
 
 	static class MultiplyBothSides extends AbstractRewrite {
-		public MultiplyBothSides(XJep xj) {
+
+		public MultiplyBothSides(XJep xj) {
 			super(xj);
 		}
 
