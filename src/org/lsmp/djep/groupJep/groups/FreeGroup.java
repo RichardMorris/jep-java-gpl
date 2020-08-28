@@ -160,6 +160,4 @@ public class FreeGroup extends Group implements RingI {
 		}
 		return null;
 	}
-
-	
 }
