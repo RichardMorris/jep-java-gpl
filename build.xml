@@ -10,25 +10,24 @@
   
   - Required: Set the JAVACCHOME environment variable to the location of the
     library directory of JavaCC (e.g. C:\apps\javacc\bin\lib)
+    If not set then the grammar files will not be recompiled
   
-  - Optional: This build file can ensure API compatibility with Java 1.2 by 
-    using the bootclasspath option for cross-compilation when compiling. For 
-    this a Java 1.2 JRE needs to be available on the system. The location 
-    of the JRE is set in the JRE1_2HOME environment variable 
-    (e.g. C:\jre1.2.2). The file {JRE1_2HOME}/lib/rt.jar must exist.
-
 =============================================================================
 -->
 
 <project name="JEP" default="compile" basedir=".">
 	
+	<!-- Jep version numbers -->
 	<property name="jep-ver" value="2.4.0"/>
 	<property name="ext-ver" value="1.1.0"/>
 
+	<!-- Java version -->
+	<property name="java-ver" value="1.8"/>
+	
 	<!-- library locations -->
 	<property environment="env"/>
 	<property name="javacchome" value="${env.JAVACCHOME}"/>
-	<property name="oldjrehome" value="${env.JRE1_2HOME}"/>
+	
 	<!-- set global properties for this build -->
 	<property name="src"		value="src"/>
 	<property name="bin"		value="bin"/>
@@ -48,7 +47,7 @@
 	<property name="jep-ext-gpl"	  value="jep-${jep-ver}-ext-${ext-ver}-gpl"/>
 	
 	<property name="classpath"     value="${lib}/junit.jar;${lib}/Jama-1.0.2.jar"/>
-	<property name="bootclasspath" value="${oldjrehome}/lib/rt.jar"/>
+
 	<!-- <property name="website" value="website"/> -->
 
 	<taskdef name="jjtree"
@@ -59,45 +58,16 @@
 
 <!--======================================================================-->
 <!-- INIT -->
-	<target name="init">
+	<target name="init" depends="print.javacc.not.present" >
 		<!-- Create the time stamp -->
 		<tstamp/>
 		<!-- Echo environment variables -->
 		<echo message="JAVACCHOME = ${javacchome}"/>
-		<echo message="JRE1_2HOME = ${oldjrehome}"/>
-		<echo message="bootclasspath = ${bootclasspath}"/>
+	</target>
 
-		<!-- Ensure JavaCC is present -->
-		<!-- TODO get this working -->
-		<!--			classpath="${javacchome}/JavaCC.zip"
-		<available property="javacc.2.present"
-				classname="COM.sun.labs.javacc.Main">
-  <classpath>
-    <pathelement location="${javacchome}/JavaCC.zip"/>
-  </classpath>
-  </available>
-
-		<available property="javacc.3.present"
-			classname="org.javacc.parser.Main"
-			classpath="${javacchome}/javacc.jar" />
-		<condition property="javacc.present">
-				<or>
-						<istrue value="javacc.2.present"/>
-						<istrue value="javacc.3.present"/>
-				</or>
-		</condition>
-		<condition property="javacc.not.present">
-				<not>
-						<istrue value="javacc.present"/>
-				</not>
-		</condition>
-		<antcall target="print.javacc.not.present"/>-->
-</target>
-<!--
-	<target name="print.javacc.not.present" if="javacc.not.present">
+	<target name="print.javacc.not.present" unless="${javacchome}">
 			<echo message="JavaCC 2 or 3 is not present. Parser.jjt will not be processed!"/>
 	</target>
-	-->
 
 <!--======================================================================-->
 <!-- JJTREE -->
@@ -122,7 +92,7 @@
 	</target>
 
 <!--======================================================================-->
-<!-- JAVACC -->
+<!-- JAVACCDOC -->
 	<target name="jjdoc" depends="javacc">
 		<mkdir dir="${doc}/grammar"/>
 		<jjdoc
@@ -143,11 +113,7 @@
 <!-- COMPILE -->
 	
 	<!-- Compiles with or without compatibility ensurance-->
-	<target name="compile" depends="compile-with-ce, compile-without-ce">
-	</target>
-	
-	<!-- Compiles without ensuring compatibility if JRE1_2HOME is not set -->
-	<target name="compile-without-ce" depends="javacc" unless="env.JRE1_2HOME">
+	<target name="compile" depends="javacc" >
 		<echo message="Compiling without ensuring compatibility"/>
 		<!-- Create the build directory -->
 		<mkdir dir="${build}"/>
@@ -157,28 +123,10 @@
 		       destdir="${build}"
 		       classpath="${classpath}"
 			   deprecation="on"
-		       source="1.2"
-			   target="1.2"/>
+		       source="${java-ver}"
+			   target="${java-ver}" />
 	</target>
 	
-	<!-- Compiles with ensuring compatibility if JRE1_2HOME is set -->
-	<target name="compile-with-ce" depends="javacc" if="env.JRE1_2HOME">
-		
-		<!-- Create the build directory -->
-		<mkdir dir="${build}"/>
-
-		<!-- Compile the java code from ${src} into ${build} -->
-		<javac srcdir="${src}"
-		       destdir="${build}"
-		       classpath="${classpath}"
-			   deprecation="on"
-		       source="1.2"
-			   target="1.2"
-		       bootclasspath="${bootclasspath}"/>
-	</target>
-	
-
-
 <!--======================================================================-->
 <!-- JAVADOC -->
 	<target name="javadoc" depends="init">
