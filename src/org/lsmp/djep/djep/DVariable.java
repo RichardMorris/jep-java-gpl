@@ -111,7 +111,22 @@ public class DVariable extends XVariable
 		derivatives.put(makeDerivString(name,derivnames),eqn);
 	}
 
-	PartialDerivative getDerivative(String derivnames[])
+	/** Gets an existing first derivative. 
+	 * @param derivname
+	 * @return the derivative or null if not found
+	 **/
+	
+	public PartialDerivative getDerivative(String derivname)
+	{
+		return (PartialDerivative) derivatives.get(makeDerivString(name,new String[]{derivname}));
+	}
+
+	/**
+	 * Gets an existing higher derivative.
+	 * @param derivnames an unordered list of names
+	 * @return the derivative or null if not found
+	 */
+	public PartialDerivative getDerivative(String derivnames[])
 	{
 		String newnames[] = sortedNames(derivnames);
 		return (PartialDerivative) derivatives.get(makeDerivString(name,newnames));
@@ -180,14 +195,14 @@ public class DVariable extends XVariable
 		return res;	
 	}
 
-	PartialDerivative findDerivative(String derivnames[],DJep jep)
+	public PartialDerivative findDerivative(String derivnames[],DJep jep)
 		throws ParseException
 	{
 		String newnames[] = sortedNames(derivnames); 
 		return findDerivativeSorted(newnames,jep);
 	}
 
-	PartialDerivative findDerivative(String derivname,DJep jep)
+	public PartialDerivative findDerivative(String derivname,DJep jep)
 		throws ParseException
 	{
 		String newnames[] = new String[1];
@@ -243,5 +258,8 @@ public class DVariable extends XVariable
 		if(!this.hasEquation()) return true;
 		if(this.getEquation() instanceof ASTConstant) return true;
 		return false;
+	}
+	public PartialDerivative getDerivative(String string,DJep jep) throws ParseException {
+		return this.findDerivative(string, jep);
 	}
 }
